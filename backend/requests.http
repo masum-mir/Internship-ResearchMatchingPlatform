@@ -1,0 +1,39 @@
+@host = http://localhost:8080
+@accessToken = PASTE_ACCESS_TOKEN
+@refreshToken = PASTE_REFRESH_TOKEN
+
+### Register student
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{ "email": "alice@ewu.edu", "password": "Pass@123", "role": "STUDENT", "name": "Alice Rahman" }
+
+### Login admin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@ewu.edu", "password": "Admin@12345" }
+
+### Update student profile
+PUT {{host}}/api/students/me
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "studentId": "2021-1-60-001", "department": "CSE", "batch": "2021", "cgpa": 3.6 }
+
+### Matched internships
+GET {{host}}/api/internships/matched
+Authorization: Bearer {{accessToken}}
+
+### Apply
+POST {{host}}/api/applications
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "targetType": "INTERNSHIP", "targetId": 1 }
+
+### Refresh
+POST {{host}}/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{refreshToken}}" }

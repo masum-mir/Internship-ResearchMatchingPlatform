@@ -1,0 +1,14 @@
+com/ewu/matching/entity/ResearchOpportunity$ResearchOpportunityBuilder.class
+com/ewu/matching/entity/Application$ApplicationBuilder.class
+com/ewu/matching/entity/Faculty$FacultyBuilder.class
+com/ewu/matching/entity/Skill$SkillBuilder.class
+com/ewu/matching/entity/Certification$CertificationBuilder.class
+com/ewu/matching/entity/Company$CompanyBuilder.class
+com/ewu/matching/entity/Project$ProjectBuilder.class
+com/ewu/matching/entity/Bookmark$BookmarkBuilder.class
+com/ewu/matching/service/impl/AuthServiceImpl$1.class
+com/ewu/matching/entity/User$UserBuilder.class
+com/ewu/matching/entity/Role$RoleBuilder.class
+com/ewu/matching/entity/Internship$InternshipBuilder.class
+com/ewu/matching/entity/RefreshToken$RefreshTokenBuilder.class
+com/ewu/matching/entity/Student$StudentBuilder.class
