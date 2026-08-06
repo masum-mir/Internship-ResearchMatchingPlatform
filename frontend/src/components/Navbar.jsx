@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { studentApi } from "../api/studentApi.js";
+import { facultyApi, companyApi } from "../api/profileApi.js";
+import { adminApi } from '../api/adminApi.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import Avatar from './Avatar.jsx';
 
@@ -7,7 +10,7 @@ const PROFILE_PATH = {
   STUDENT: '/student/profile',
   COMPANY: '/company/profile',
   FACULTY: '/faculty/profile',
-  ADMIN: '/admin/dashboard'
+  ADMIN: '/admin/profile'
 };
 
 export default function Navbar({ onToggleSidebar }) {
@@ -15,6 +18,7 @@ export default function Navbar({ onToggleSidebar }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [profile, setProfile] = useState(null);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -23,6 +27,26 @@ export default function Navbar({ onToggleSidebar }) {
     return () => document.removeEventListener('mousedown', close);
   }, []);
 
+  useEffect(() => {
+  const loadProfile = async () => {
+    try {
+      if (role === "STUDENT") {
+        setProfile(await studentApi.getMyProfile());
+      } else if (role === "FACULTY") {
+        setProfile(await facultyApi.getMyProfile());
+      } else if (role === "COMPANY") {
+        setProfile(await companyApi.getMyProfile());
+      } else if (role === "ADMIN") {
+        setProfile(await adminApi.getMyProfile());
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  loadProfile();
+  }, [role]);
+  
   const handleLogout = async () => { await logout(); navigate('/login'); };
 
   const submitSearch = (e) => {
@@ -41,30 +65,40 @@ export default function Navbar({ onToggleSidebar }) {
         EWU Match
       </Link>
 
-      {role === 'STUDENT' && (
-        <form className="ms-3 d-none d-sm-block" onSubmit={submitSearch}>
-          <div className="position-relative">
-            <i className="bi bi-search position-absolute text-muted" style={{ left: 14, top: 9 }} />
-            <input
-              className="nav-search ps-4"
-              placeholder="Search opportunities"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-        </form>
-      )}
+      <div className="nav-search-wrap">
+        {role === 'STUDENT' && (
+          <form className="d-none d-sm-block" onSubmit={submitSearch}>
+            <div className="position-relative">
+              <i className="bi bi-search position-absolute" style={{ left: 16, top: 11, color: '#1f2328' }} />
+              <input
+                className="nav-search"
+                placeholder="Search opportunities"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+          </form>
+        )}
+      </div>
 
       <div className="ms-auto position-relative" ref={menuRef}>
         <button className="btn btn-light d-flex align-items-center gap-2 py-1" onClick={() => setOpen((o) => !o)}>
-          <Avatar name={user?.email} size={32} />
+          <Avatar
+            name={user?.email}
+            image={profile?.profilePicture}
+            size={32}
+          />
           <span className="d-none d-md-inline small fw-semibold">{user?.email}</span>
           <i className="bi bi-chevron-down small text-muted" />
         </button>
         {open && (
           <div className="profile-menu">
             <div className="px-3 py-3 border-bottom d-flex align-items-center gap-2">
-              <Avatar name={user?.email} size={40} />
+              <Avatar
+                name={user?.email}
+                image={profile?.profilePicture}
+                size={40}
+              />
               <div className="overflow-hidden">
                 <div className="fw-semibold text-truncate" style={{ maxWidth: 150 }}>{user?.email}</div>
                 <span className="badge bg-light text-dark border">{role}</span>

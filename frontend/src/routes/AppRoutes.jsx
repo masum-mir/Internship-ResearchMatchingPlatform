@@ -31,6 +31,7 @@ import ResearchForm from '../pages/faculty/ResearchForm.jsx';
 import ResearchApplicants from '../pages/faculty/Applicants.jsx';
 
 import AdminDashboard from '../pages/admin/Dashboard.jsx';
+import AdminProfile from '../pages/admin/Profile.jsx';
 import ManageUsers from '../pages/admin/ManageUsers.jsx';
 import Reports from '../pages/admin/Reports.jsx';
 
@@ -96,6 +97,7 @@ export default function AppRoutes() {
           {/* Admin */}
           <Route element={<RoleRoute allow={['ADMIN']} />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/profile" element={<AdminProfile />} />
             <Route path="/admin/users" element={<ManageUsers />} />
             <Route path="/admin/reports" element={<Reports />} />
           </Route>

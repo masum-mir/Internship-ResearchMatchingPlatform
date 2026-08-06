@@ -27,8 +27,6 @@ public class ApplicationController {
 
     private final ApplicationService applicationService;
 
-    // ---------- Student ----------
-
     @Operation(summary = "Apply to an internship or research post (STUDENT). Match score is computed and stored.")
     @IsStudent
     @PostMapping

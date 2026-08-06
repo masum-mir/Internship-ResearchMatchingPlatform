@@ -8,16 +8,36 @@ import java.util.List;
 import java.util.Set;
 
 public record ResearchResponse(
+
         Long id,
+
         String topic,
+
+        String description,
+
         String researchArea,
-        List<SkillResponse> requiredSkills,
+
         BigDecimal minCgpa,
+
         String duration,
-        String supervisor,
-        Set<String> targetDepartments,
+
+        Integer availablePositions,
+
+        LocalDateTime applicationDeadline,
+
         PostStatus status,
-        LocalDateTime createdAt,
+
         Long facultyId,
-        String facultyName
-) {}
+
+        String facultyName,
+
+        Set<String> targetDepartments,
+
+        List<SkillResponse> requiredSkills,
+
+        LocalDateTime createdAt,
+
+        FacultyProfileResponse faculty
+
+) {
+}

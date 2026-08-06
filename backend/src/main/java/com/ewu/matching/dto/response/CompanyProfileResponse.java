@@ -7,5 +7,7 @@ public record CompanyProfileResponse(
         String website,
         String location,
         String contactNumber,
-        String email
+        String email,
+        String profilePicture,
+        String coverPicture
 ) {}

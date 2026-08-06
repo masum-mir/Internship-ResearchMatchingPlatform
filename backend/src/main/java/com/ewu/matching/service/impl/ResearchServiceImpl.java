@@ -51,7 +51,6 @@ public class ResearchServiceImpl implements ResearchService {
                 .researchArea(req.researchArea())
                 .minCgpa(req.minCgpa())
                 .duration(req.duration())
-                .supervisor(req.supervisor() != null ? req.supervisor() : faculty.getName())
                 .status(PostStatus.ACTIVE)
                 .requiredSkills(resolveSkills(req.requiredSkills()))
                 .targetDepartments(req.targetDepartments() != null ? new HashSet<>(req.targetDepartments()) : new HashSet<>())
@@ -69,7 +68,6 @@ public class ResearchServiceImpl implements ResearchService {
         if (req.researchArea() != null) research.setResearchArea(req.researchArea());
         if (req.minCgpa() != null) research.setMinCgpa(req.minCgpa());
         if (req.duration() != null) research.setDuration(req.duration());
-        if (req.supervisor() != null) research.setSupervisor(req.supervisor());
         if (req.requiredSkills() != null) research.setRequiredSkills(resolveSkills(req.requiredSkills()));
         if (req.targetDepartments() != null) research.setTargetDepartments(new HashSet<>(req.targetDepartments()));
         return OpportunityMapper.toResearchResponse(researchRepository.save(research));

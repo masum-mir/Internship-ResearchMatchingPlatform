@@ -11,9 +11,14 @@ public final class ProfileMapper {
     private ProfileMapper() {}
 
     public static UserResponse toUserResponse(User u) {
+        return toUserResponse(u, null);
+    }
+
+    public static UserResponse toUserResponse(User u, String name) {
         return new UserResponse(
                 u.getId(),
                 u.getEmail(),
+                name,
                 u.getRoles().stream().map(Role::getName).collect(java.util.stream.Collectors.toSet()),
                 u.isEnabled(),
                 u.isBlocked(),
@@ -39,11 +44,11 @@ public final class ProfileMapper {
                 s.getStudentId(),
                 s.getName(),
                 s.getDepartment(),
-                s.getBatch(),
                 s.getCgpa(),
                 s.getContactNumber(),
                 s.getAddress(),
                 s.getProfilePicture(),
+                s.getCoverPicture(),
                 s.getUser() != null ? s.getUser().getEmail() : null,
                 s.getSkills().stream().map(ProfileMapper::toSkillResponse).toList(),
                 s.getProjects().stream().map(ProfileMapper::toProjectResponse).toList(),
@@ -56,7 +61,6 @@ public final class ProfileMapper {
                 s.getId(),
                 s.getName(),
                 s.getDepartment(),
-                s.getBatch(),
                 s.getCgpa(),
                 s.getContactNumber(),
                 s.getSkills().stream().map(ProfileMapper::toSkillResponse).toList(),
@@ -65,17 +69,41 @@ public final class ProfileMapper {
         );
     }
 
-    public static FacultyProfileResponse toFacultyProfile(Faculty f) {
+    public static FacultyProfileResponse
+    toFacultyProfileResponse(Faculty faculty) {
+
+        if (faculty == null) {
+            return null;
+        }
+
         return new FacultyProfileResponse(
-                f.getId(), f.getName(), f.getDepartment(), f.getDesignation(),
-                f.getContactNumber(), f.getUser() != null ? f.getUser().getEmail() : null
+                faculty.getId(),
+                faculty.getName(),
+                faculty.getDepartment(),
+                faculty.getDesignation(),
+                faculty.getBio(),
+                faculty.getSpecialization(),
+                faculty.getResearchInterests(),
+                faculty.getContactNumber(),
+                faculty.getUniversity(),
+                faculty.getUser() != null
+                        ? faculty.getUser().getEmail()
+                        : null,
+                faculty.getProfilePicture(),
+                faculty.getCoverPicture(),
+                faculty.getGoogleScholarUrl(),
+                faculty.getOrcidId(),
+                faculty.getResearchgateUrl(),
+                faculty.getLinkedinUrl(),
+                faculty.getUniversityProfileUrl()
         );
     }
 
     public static CompanyProfileResponse toCompanyProfile(Company c) {
         return new CompanyProfileResponse(
                 c.getId(), c.getCompanyName(), c.getDescription(), c.getWebsite(),
-                c.getLocation(), c.getContactNumber(), c.getUser() != null ? c.getUser().getEmail() : null
+                c.getLocation(), c.getContactNumber(), c.getUser() != null ? c.getUser().getEmail() : null,
+                c.getProfilePicture(), c.getCoverPicture()
         );
     }
 

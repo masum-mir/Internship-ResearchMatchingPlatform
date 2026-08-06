@@ -55,11 +55,27 @@ public class Application {
     @Column(name = "applied_at", nullable = false, updatable = false)
     private LocalDateTime appliedAt;
 
+    @Column(
+            name = "updated_at",
+            nullable = false
+    )
+    private LocalDateTime updatedAt;
+
     @PrePersist
     void onCreate() {
-        this.appliedAt = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
+
+        this.appliedAt = now;
+        this.updatedAt = now;
+
         if (this.status == null) {
-            this.status = ApplicationStatus.PENDING;
+            this.status =
+                    ApplicationStatus.PENDING;
         }
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }

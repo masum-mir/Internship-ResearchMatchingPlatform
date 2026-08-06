@@ -33,6 +33,8 @@ public class CompanyServiceImpl implements CompanyService {
         if (req.website() != null) c.setWebsite(req.website());
         if (req.location() != null) c.setLocation(req.location());
         if (req.contactNumber() != null) c.setContactNumber(req.contactNumber());
+        if (req.profilePicture() != null) c.setProfilePicture(req.profilePicture());
+        if (req.coverPicture() != null) c.setCoverPicture(req.coverPicture());
         return ProfileMapper.toCompanyProfile(companyRepository.save(c));
     }
 }

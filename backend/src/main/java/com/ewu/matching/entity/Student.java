@@ -31,7 +31,6 @@ public class Student {
 
     private String name;
     private String department;
-    private String batch;
 
     @Column(precision = 4, scale = 2)
     private BigDecimal cgpa;
@@ -42,8 +41,11 @@ public class Student {
     @Column(length = 500)
     private String address;
 
-    @Column(name = "profile_picture")
+    @Column(name = "profile_picture", length = 500)
     private String profilePicture;
+
+    @Column(name = "cover_picture", length = 500)
+    private String coverPicture;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -61,4 +63,10 @@ public class Student {
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<Certification> certifications = new HashSet<>();
+
+    @OneToMany(mappedBy = "student")
+    private Set<Application> applications;
+
+    @OneToMany(mappedBy = "student")
+    private Set<Bookmark> bookmarks;
 }

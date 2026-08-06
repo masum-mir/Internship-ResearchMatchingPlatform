@@ -11,7 +11,7 @@ export default function Layout() {
   return (
     <div className="app-shell">
       <Navbar onToggleSidebar={() => setOpen((o) => !o)} />
-      <div className="d-flex flex-column flex-md-row">
+      <div className="app-body d-flex flex-column flex-md-row">
         <Sidebar role={role} open={open} />
         <main className="app-content">
           <Outlet />

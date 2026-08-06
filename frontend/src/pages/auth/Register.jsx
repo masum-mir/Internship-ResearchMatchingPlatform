@@ -29,7 +29,7 @@ export default function Register() {
     <div className="auth-wrap">
       <div className="auth-brand">
         <div className="auth-brand-inner">
-          <div className="brand-logo mb-4" style={{ fontSize: '1.5rem' }}>
+          <div className="brand-logo mb-4" style={{ fontSize: '2.1rem' }}>
             <span className="brand-mark"><i className="bi bi-mortarboard-fill" /></span> EWU Match
           </div>
           <h1>Join your campus network.</h1>

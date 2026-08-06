@@ -32,12 +32,19 @@ public class ResearchOpportunity {
     @Column(name = "research_area")
     private String researchArea;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @Column(name = "min_cgpa", precision = 4, scale = 2)
     private BigDecimal minCgpa;
 
-    private String duration;
+    @Column(name = "available_positions")
+    private Integer availablePositions;
 
-    private String supervisor;
+    @Column(name = "application_deadline")
+    private LocalDateTime applicationDeadline;
+
+    private String duration;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

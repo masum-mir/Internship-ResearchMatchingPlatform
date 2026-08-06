@@ -20,7 +20,6 @@ export default function FacultyDashboard() {
         <div className="col-sm-6 col-lg-4"><StatCard label="Total applicants" value={data.totalApplicants} icon="bi-people" /></div>
       </div>
       <div className="d-flex gap-2 flex-wrap">
-        <Link to="/faculty/research/new" className="btn btn-brand"><i className="bi bi-plus-square me-1" /> Post research</Link>
         <Link to="/faculty/research" className="btn btn-outline-secondary">My research</Link>
       </div>
     </div>

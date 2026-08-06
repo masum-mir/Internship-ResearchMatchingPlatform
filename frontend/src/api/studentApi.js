@@ -14,5 +14,27 @@ export const studentApi = {
   addCertification: (body) => client.post('/students/me/certifications', body).then((r) => r.data),
   updateCertification: (id, body) => client.put(`/students/me/certifications/${id}`, body).then((r) => r.data),
   deleteCertification: (id) => client.delete(`/students/me/certifications/${id}`),
-  getPortfolio: (id) => client.get(`/students/${id}/portfolio`).then((r) => r.data)
+  getPortfolio: (id) => client.get(`/students/${id}/portfolio`).then((r) => r.data),
+  uploadProfileImage: (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return client.post("/upload/profile", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data"
+    }
+  }).then((r) => r.data);
+},
+
+uploadCoverImage: (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return client.post("/upload/cover", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data"
+    }
+  }).then((r) => r.data);
+}
+
 };

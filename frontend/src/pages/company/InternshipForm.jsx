@@ -97,7 +97,7 @@ export default function InternshipForm() {
           </div>
 
           <div className="col-12 d-flex gap-2">
-            <button className="btn btn-brand">{editing ? 'Save changes' : 'Post internship'}</button>
+            <button className="btn btn-brand">{editing ? 'Update' : 'Post internship'}</button>
             <button type="button" className="btn btn-light" onClick={() => navigate('/company/internships')}>Cancel</button>
           </div>
         </div>

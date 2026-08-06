@@ -52,11 +52,11 @@ public class StudentServiceImpl implements StudentService {
         if (req.name() != null) s.setName(req.name());
         if (req.studentId() != null) s.setStudentId(req.studentId());
         if (req.department() != null) s.setDepartment(req.department());
-        if (req.batch() != null) s.setBatch(req.batch());
         if (req.cgpa() != null) s.setCgpa(req.cgpa());
         if (req.contactNumber() != null) s.setContactNumber(req.contactNumber());
         if (req.address() != null) s.setAddress(req.address());
         if (req.profilePicture() != null) s.setProfilePicture(req.profilePicture());
+        if (req.coverPicture() != null) s.setCoverPicture(req.coverPicture());
         studentRepository.save(s);
         return ProfileMapper.toStudentProfile(loadCurrentDetailed());
     }

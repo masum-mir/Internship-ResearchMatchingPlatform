@@ -58,7 +58,7 @@ export default function Reports() {
 
       <div className="row g-3">
         <div className="col-md-6">
-          <div className="card border-0 shadow-sm">
+          <div className="card report-card border-0 shadow-sm">
             <div className="card-body">
               <h6 className="mb-3">Users by role</h6>
               <ResponsiveContainer width="100%" height={280}>
@@ -74,7 +74,7 @@ export default function Reports() {
           </div>
         </div>
         <div className="col-md-6">
-          <div className="card border-0 shadow-sm">
+          <div className="card report-card border-0 shadow-sm">
             <div className="card-body">
               <h6 className="mb-3">Applications by status</h6>
               <ResponsiveContainer width="100%" height={280}>

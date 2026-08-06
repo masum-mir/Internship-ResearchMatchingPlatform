@@ -7,7 +7,6 @@ public record PortfolioResponse(
         Long studentId,
         String name,
         String department,
-        String batch,
         BigDecimal cgpa,
         String contactNumber,
         List<SkillResponse> skills,

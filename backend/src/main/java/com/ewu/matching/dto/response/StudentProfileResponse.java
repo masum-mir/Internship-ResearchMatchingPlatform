@@ -8,11 +8,11 @@ public record StudentProfileResponse(
         String studentId,
         String name,
         String department,
-        String batch,
         BigDecimal cgpa,
         String contactNumber,
         String address,
         String profilePicture,
+        String coverPicture,   // <-- ADD
         String email,
         List<SkillResponse> skills,
         List<ProjectResponse> projects,

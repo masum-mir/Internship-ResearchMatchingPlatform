@@ -42,10 +42,10 @@ public class ApplicationServiceImpl implements ApplicationService {
         Student student = studentRepository.findWithDetailsById(currentUser.currentStudent().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Student profile not found"));
 
-        Application application = Application.builder()
-                .student(student)
-                .targetType(req.targetType())
-                .build();
+        Application application = new Application();
+
+        application.setStudent(student);
+        application.setTargetType(req.targetType());
 
         if (req.targetType() == OpportunityType.INTERNSHIP) {
             if (applicationRepository.existsByStudent_IdAndInternship_Id(student.getId(), req.targetId())) {

@@ -93,7 +93,7 @@ export default function ResearchForm() {
           </div>
 
           <div className="col-12 d-flex gap-2">
-            <button className="btn btn-brand">{editing ? 'Save changes' : 'Post research'}</button>
+            <button className="btn btn-brand">{editing ? 'Update' : 'Post research'}</button>
             <button type="button" className="btn btn-light" onClick={() => navigate('/faculty/research')}>Cancel</button>
           </div>
         </div>

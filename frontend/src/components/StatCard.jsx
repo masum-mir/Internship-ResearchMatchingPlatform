@@ -1,8 +1,8 @@
 export default function StatCard({ label, value, icon = 'bi-graph-up', tone }) {
   const toneStyle = tone === 'success'
-    ? { background: '#e6f4ea', color: '#0b8043' }
+    ? { background: 'rgba(11,128,67,.22)', color: '#0b8043' }
     : tone === 'danger'
-    ? { background: '#fdecee', color: '#c0392b' }
+    ? { background: 'rgba(192,57,43,.22)', color: '#c0392b' }
     : undefined;
   return (
     <div className="card stat-card border-0 shadow-sm h-100">

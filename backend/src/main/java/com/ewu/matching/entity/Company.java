@@ -35,6 +35,12 @@ public class Company {
     @Column(name = "contact_number")
     private String contactNumber;
 
+    @Column(name = "profile_picture", length = 500)
+    private String profilePicture;
+
+    @Column(name = "cover_picture", length = 500)
+    private String coverPicture;
+
     @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Internship> internships = new ArrayList<>();

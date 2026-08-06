@@ -5,5 +5,7 @@ public record CompanyProfileRequest(
         String description,
         String website,
         String location,
-        String contactNumber
+        String contactNumber,
+        String profilePicture,
+        String coverPicture
 ) {}

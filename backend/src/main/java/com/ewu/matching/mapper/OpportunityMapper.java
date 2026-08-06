@@ -1,7 +1,9 @@
 package com.ewu.matching.mapper;
 
+import com.ewu.matching.dto.response.FacultyProfileResponse;
 import com.ewu.matching.dto.response.InternshipResponse;
 import com.ewu.matching.dto.response.ResearchResponse;
+import com.ewu.matching.entity.Faculty;
 import com.ewu.matching.entity.Internship;
 import com.ewu.matching.entity.ResearchOpportunity;
 
@@ -30,20 +32,55 @@ public final class OpportunityMapper {
         );
     }
 
-    public static ResearchResponse toResearchResponse(ResearchOpportunity r) {
+    public static ResearchResponse toResearchResponse(
+            ResearchOpportunity research
+    ) {
+        if (research == null) {
+            return null;
+        }
+
+        Faculty faculty = research.getFaculty();
+
+        FacultyProfileResponse facultyProfile =
+                faculty != null
+                        ? ProfileMapper
+                        .toFacultyProfileResponse(
+                                faculty
+                        )
+                        : null;
+
         return new ResearchResponse(
-                r.getId(),
-                r.getTopic(),
-                r.getResearchArea(),
-                ProfileMapper.toSkillList(r.getRequiredSkills()),
-                r.getMinCgpa(),
-                r.getDuration(),
-                r.getSupervisor(),
-                new HashSet<>(r.getTargetDepartments()),
-                r.getStatus(),
-                r.getCreatedAt(),
-                r.getFaculty() != null ? r.getFaculty().getId() : null,
-                r.getFaculty() != null ? r.getFaculty().getName() : null
+                research.getId(),
+                research.getTopic(),
+                research.getDescription(),
+                research.getResearchArea(),
+                research.getMinCgpa(),
+                research.getDuration(),
+                research.getAvailablePositions(),
+                research.getApplicationDeadline(),
+                research.getStatus(),
+
+                faculty != null
+                        ? faculty.getId()
+                        : null,
+
+                faculty != null
+                        ? faculty.getName()
+                        : null,
+
+                research.getTargetDepartments(),
+
+                research.getRequiredSkills()
+                        .stream()
+                        .map(
+                                ProfileMapper
+                                        ::toSkillResponse
+                        )
+                        .toList(),
+
+                research.getCreatedAt(),
+
+                facultyProfile
         );
     }
 }

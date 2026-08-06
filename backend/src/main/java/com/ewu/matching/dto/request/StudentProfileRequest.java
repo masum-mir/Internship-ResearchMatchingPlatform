@@ -15,5 +15,6 @@ public record StudentProfileRequest(
         BigDecimal cgpa,
         String contactNumber,
         String address,
-        String profilePicture
+        String profilePicture,
+        String coverPicture
 ) {}

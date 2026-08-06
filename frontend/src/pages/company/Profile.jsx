@@ -10,11 +10,11 @@ export default function CompanyProfile() {
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState({ type: '', message: '' });
 
-  useEffect(() => {
+  const load = () =>
     companyApi.getMyProfile().then(setP)
-      .catch((e) => setNotice({ type: 'danger', message: apiMessage(e) }))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch((e) => setNotice({ type: 'danger', message: apiMessage(e) }));
+
+  useEffect(() => { load().finally(() => setLoading(false)); }, []);
 
   const save = async (e) => {
     e.preventDefault();
@@ -24,6 +24,38 @@ export default function CompanyProfile() {
       setP(updated);
       setNotice({ type: 'success', message: 'Profile saved.' });
     } catch (err) { setNotice({ type: 'danger', message: apiMessage(err) }); }
+  };
+
+  const handleProfileImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+      const uploadResponse = await companyApi.uploadProfileImage(file);
+      const { companyName, description, website, location, contactNumber } = p;
+      await companyApi.updateMyProfile({
+        companyName, description, website, location, contactNumber,
+        profilePicture: uploadResponse.filename
+      });
+      await load();
+    } catch (err) {
+      setNotice({ type: 'danger', message: apiMessage(err) });
+    }
+  };
+
+  const handleCoverImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+      const uploadResponse = await companyApi.uploadCoverImage(file);
+      const { companyName, description, website, location, contactNumber } = p;
+      await companyApi.updateMyProfile({
+        companyName, description, website, location, contactNumber,
+        coverPicture: uploadResponse.filename
+      });
+      await load();
+    } catch (err) {
+      setNotice({ type: 'danger', message: apiMessage(err) });
+    }
   };
 
   if (loading) return <Loader />;
@@ -36,6 +68,10 @@ export default function CompanyProfile() {
         name={p.companyName || "Your company"}
         subtitle="Company profile"
         meta={[p.location, p.website, p.email]}
+        profilePicture={p.profilePicture}
+        coverPicture={p.coverPicture}
+        onProfileImageUpload={handleProfileImageUpload}
+        onCoverImageUpload={handleCoverImageUpload}
       />
       <Notice type={notice.type} message={notice.message} onClose={() => setNotice({ type: '', message: '' })} />
       <form onSubmit={save} className="card border-0 shadow-sm">
