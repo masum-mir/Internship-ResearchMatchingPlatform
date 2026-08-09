@@ -1,6 +1,7 @@
 package com.ewu.matching.entity;
 
 import com.ewu.matching.enums.PostStatus;
+import com.ewu.matching.enums.WorkMode;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -35,6 +36,12 @@ public class ResearchOpportunity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(columnDefinition = "TEXT")
+    private String eligibility;
+
+    @Column(columnDefinition = "TEXT")
+    private String responsibilities;
+
     @Column(name = "min_cgpa", precision = 4, scale = 2)
     private BigDecimal minCgpa;
 
@@ -45,6 +52,21 @@ public class ResearchOpportunity {
     private LocalDateTime applicationDeadline;
 
     private String duration;
+    private String location;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "work_mode", length = 20)
+    private WorkMode workMode;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean funded = false;
+
+    @Column(name = "stipend_amount", precision = 12, scale = 2)
+    private BigDecimal stipendAmount;
+
+    @Column(name = "stipend_currency", length = 10)
+    private String stipendCurrency;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -53,6 +75,9 @@ public class ResearchOpportunity {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -64,19 +89,21 @@ public class ResearchOpportunity {
     private Set<Skill> requiredSkills = new HashSet<>();
 
     @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(
-            name = "research_departments",
-            joinColumns = @JoinColumn(name = "research_id")
-    )
+    @CollectionTable(name = "research_departments", joinColumns = @JoinColumn(name = "research_id"))
     @Column(name = "department")
     @Builder.Default
     private Set<String> targetDepartments = new HashSet<>();
 
     @PrePersist
     void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        if (this.status == null) {
-            this.status = PostStatus.ACTIVE;
-        }
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+        if (this.status == null) this.status = PostStatus.ACTIVE;
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }

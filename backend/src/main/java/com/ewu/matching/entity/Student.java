@@ -4,9 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -31,9 +29,16 @@ public class Student {
 
     private String name;
     private String department;
+    private String batch;
 
     @Column(precision = 4, scale = 2)
     private BigDecimal cgpa;
+
+    @Column(length = 255)
+    private String headline;
+
+    @Column(columnDefinition = "TEXT")
+    private String bio;
 
     @Column(name = "contact_number")
     private String contactNumber;
@@ -46,6 +51,25 @@ public class Student {
 
     @Column(name = "cover_picture", length = 500)
     private String coverPicture;
+
+    @Column(name = "university", length = 255)
+    private String university;
+
+    @Column(name = "resume_url", length = 500)
+    private String resumeUrl;
+
+    @Column(name = "portfolio_url", length = 500)
+    private String portfolioUrl;
+
+    @Column(name = "github_url", length = 500)
+    private String githubUrl;
+
+    @Column(name = "linkedin_url", length = 500)
+    private String linkedinUrl;
+
+    @Builder.Default
+    @Column(name = "open_to_work", nullable = false)
+    private boolean openToWork = false;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -65,8 +89,10 @@ public class Student {
     private Set<Certification> certifications = new HashSet<>();
 
     @OneToMany(mappedBy = "student")
-    private Set<Application> applications;
+    @Builder.Default
+    private Set<Application> applications = new HashSet<>();
 
     @OneToMany(mappedBy = "student")
-    private Set<Bookmark> bookmarks;
+    @Builder.Default
+    private Set<Bookmark> bookmarks = new HashSet<>();
 }

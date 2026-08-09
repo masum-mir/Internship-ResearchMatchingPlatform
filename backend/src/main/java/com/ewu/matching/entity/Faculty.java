@@ -26,16 +26,24 @@ public class Faculty {
     private String name;
     private String department;
     private String designation;
+
     @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
+
     @Column(name = "specialization", length = 255)
     private String specialization;
+
     @Column(name = "research_interests", columnDefinition = "TEXT")
     private String researchInterests;
+
     @Column(name = "contact_number")
     private String contactNumber;
+
     @Column(name = "university", length = 255)
     private String university;
+
+    @Column(name = "location", length = 255)
+    private String location;
 
     @Column(name = "profile_picture", length = 500)
     private String profilePicture;
@@ -45,6 +53,7 @@ public class Faculty {
 
     @Column(name = "google_scholar_url", length = 500)
     private String googleScholarUrl;
+
     @Column(name = "orcid_id", length = 100)
     private String orcidId;
 
@@ -53,8 +62,14 @@ public class Faculty {
 
     @Column(name = "linkedin_url", length = 500)
     private String linkedinUrl;
+
     @Column(name = "university_profile_url", length = 500)
     private String universityProfileUrl;
+
+    @Builder.Default
+    @Column(name = "available_for_supervision", nullable = false)
+    private boolean availableForSupervision = true;
+
     @OneToMany(mappedBy = "faculty", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ResearchOpportunity> researchOpportunities = new ArrayList<>();

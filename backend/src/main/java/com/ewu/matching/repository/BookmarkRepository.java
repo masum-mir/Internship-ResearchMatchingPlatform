@@ -10,7 +10,7 @@ import java.util.List;
 @Repository
 public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
 
-    @EntityGraph(attributePaths = {"internship", "internship.company", "research", "research.faculty"})
+    @EntityGraph(attributePaths = { "internship", "internship.company", "research", "research.faculty" })
     List<Bookmark> findByStudent_Id(Long studentId);
 
     boolean existsByStudent_IdAndInternship_Id(Long studentId, Long internshipId);

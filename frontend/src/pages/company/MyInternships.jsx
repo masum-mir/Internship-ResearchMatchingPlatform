@@ -1,64 +1,93 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { internshipApi } from '../../api/internshipApi.js';
 import { apiMessage } from '../../api/axiosClient.js';
-import Loader from '../../components/Loader.jsx';
-import Notice from '../../components/Toast.jsx';
+import OpportunityCard from '../../components/OpportunityCard.jsx';
+import OpportunityDetailModal from '../../components/OpportunityDetailModal.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
+import Loader from '../../components/Loader.jsx';
+import PageTitle from '../../components/PageTitle.jsx';
 
 export default function MyInternships() {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
+  const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [notice, setNotice] = useState({ type: '', message: '' });
+  const [error, setError] = useState('');
 
-  const load = () => {
-    setLoading(true);
-    internshipApi.mine().then(setItems)
-      .catch((e) => setNotice({ type: 'danger', message: apiMessage(e) }))
-      .finally(() => setLoading(false));
-  };
-  useEffect(() => { load(); }, []);
+  const load = useCallback(async () => {
+    try {
+      setItems(await internshipApi.mine());
+    } catch (e) {
+      setError(apiMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   const remove = async (id) => {
-    if (!window.confirm('Delete this internship?')) return;
-    try { await internshipApi.remove(id); load(); } catch (e) { setNotice({ type: 'danger', message: apiMessage(e) }); }
+    if (!window.confirm('Delete this internship? Existing applications may also be affected.')) return;
+    try {
+      await internshipApi.remove(id);
+      setItems((old) => old.filter((x) => x.id !== id));
+    } catch (e) {
+      setError(apiMessage(e));
+    }
   };
-
-  if (loading) return <Loader />;
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h4 className="mb-0">My Internships</h4>
-        <Link to="/company/internships/new" className="btn btn-brand btn-sm"><i className="bi bi-plus-lg me-1" /> New</Link>
-      </div>
-      <Notice type={notice.type} message={notice.message} onClose={() => setNotice({ type: '', message: '' })} />
-      {items.length === 0 ? (
-        <EmptyState icon="bi-briefcase" title="No internships yet" message="Post your first internship to start receiving applicants." />
+      <PageTitle
+        title="My Internships"
+        subtitle="Manage internship posts and review applicants."
+        action={
+          <Link className="btn btn-brand" to="/company/internships/new">
+            <i className="bi bi-plus-lg me-1" /> Post internship
+          </Link>
+        }
+      />
+
+      {error && <div className="alert alert-danger">{error}</div>}
+      {loading ? <Loader /> : items.length === 0 ? (
+        <div className="social-card">
+          <EmptyState icon="bi-briefcase" title="No internships posted" message="Create your first internship opportunity.">
+            <Link className="btn btn-brand btn-sm" to="/company/internships/new">Post internship</Link>
+          </EmptyState>
+        </div>
       ) : (
-        <div className="row g-3">
-          {items.map((it) => (
-            <div className="col-md-6" key={it.id}>
-              <div className="card border-0 shadow-sm h-100">
-                <div className="card-body">
-                  <div className="d-flex justify-content-between">
-                    <h5 className="mb-1">{it.title}</h5>
-                    <span className="badge bg-light text-dark border">{it.status}</span>
-                  </div>
-                  <p className="text-muted small mb-2"><i className="bi bi-geo-alt me-1" />{it.location || '—'} · deadline {it.deadline || '—'}</p>
-                  <div className="d-flex gap-2">
-                    <Link to={`/company/internships/${it.id}/applicants`} className="btn btn-sm btn-brand">
-                      <i className="bi bi-people me-1" /> Applicants
-                    </Link>
-                    <Link to={`/company/internships/${it.id}/edit`} className="btn btn-sm btn-outline-secondary">Edit</Link>
-                    <button className="btn btn-sm btn-outline-danger" onClick={() => remove(it.id)}><i className="bi bi-trash" /></button>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <div className="opportunity-list">
+          {items.map((item) => (
+            <OpportunityCard
+              key={item.id}
+              type="INTERNSHIP"
+              opportunity={item}
+              onView={() => setDetail(item)}
+              ownerActions={
+                <>
+                  <button className="btn btn-outline-primary btn-sm" onClick={() => navigate(`/company/internships/${item.id}/applicants`)}>
+                    <i className="bi bi-people me-1" /> Applicants
+                  </button>
+                  <button className="btn btn-outline-secondary btn-sm" onClick={() => navigate(`/company/internships/${item.id}/edit`)}>
+                    <i className="bi bi-pencil me-1" /> Edit
+                  </button>
+                  <button className="btn btn-outline-danger btn-sm" onClick={() => remove(item.id)}>
+                    <i className="bi bi-trash" />
+                  </button>
+                </>
+              }
+            />
           ))}
         </div>
       )}
+
+      <OpportunityDetailModal
+        show={Boolean(detail)}
+        type="INTERNSHIP"
+        opportunity={detail}
+        onClose={() => setDetail(null)}
+      />
     </div>
   );
 }

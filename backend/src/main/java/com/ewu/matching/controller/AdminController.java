@@ -10,13 +10,18 @@ import com.ewu.matching.dto.response.UserResponse;
 import com.ewu.matching.enums.OpportunityType;
 import com.ewu.matching.security.access.IsAdmin;
 import com.ewu.matching.service.AdminService;
+import com.ewu.matching.service.FileStorageService;
 import com.ewu.matching.service.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 import java.util.List;
 
@@ -29,6 +34,7 @@ public class AdminController {
 
     private final AdminService adminService;
     private final ReportService reportService;
+    private final FileStorageService fileStorageService;
 
     @Operation(summary = "Get my admin profile")
     @GetMapping("/me")
@@ -36,10 +42,29 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getMyProfile());
     }
 
-    @Operation(summary = "Update my admin profile (profile/cover picture)")
-    @PutMapping("/me")
+    @Operation(summary = "Update my admin profile using JSON")
+    @PutMapping(value = "/me", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UserResponse> updateMyProfile(@Valid @RequestBody AdminProfileRequest request) {
         return ResponseEntity.ok(adminService.updateMyProfile(request));
+    }
+
+    @Operation(summary = "Update admin profile and images in one request")
+    @PutMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserResponse> updateMyProfileWithFiles(
+            @Valid @RequestPart("data") AdminProfileRequest request,
+            @RequestPart(value = "profilePicture", required = false) MultipartFile profilePicture,
+            @RequestPart(value = "coverPicture", required = false) MultipartFile coverPicture) throws IOException {
+
+        String profileUrl = request.profilePicture();
+        String coverUrl = request.coverPicture();
+        if (profilePicture != null && !profilePicture.isEmpty()) {
+            profileUrl = fileStorageService.saveProfileImage(profilePicture);
+        }
+        if (coverPicture != null && !coverPicture.isEmpty()) {
+            coverUrl = fileStorageService.saveCoverImage(coverPicture);
+        }
+
+        return ResponseEntity.ok(adminService.updateMyProfile(new AdminProfileRequest(profileUrl, coverUrl)));
     }
 
     @Operation(summary = "List all users (ADMIN)")
@@ -88,6 +113,13 @@ public class AdminController {
     @DeleteMapping("/posts/{type}/{id}")
     public ResponseEntity<Void> deletePost(@PathVariable OpportunityType type, @PathVariable Long id) {
         adminService.deletePost(type, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Delete/soft-delete an abusive social post (ADMIN)")
+    @DeleteMapping("/social-posts/{id}")
+    public ResponseEntity<Void> deleteSocialPost(@PathVariable Long id) {
+        adminService.deleteSocialPost(id);
         return ResponseEntity.noContent().build();
     }
 

@@ -7,5 +7,7 @@ public record CertificationResponse(
         String name,
         String issuer,
         LocalDate issueDate,
+        LocalDate expiryDate,
+        String credentialId,
         String link
 ) {}

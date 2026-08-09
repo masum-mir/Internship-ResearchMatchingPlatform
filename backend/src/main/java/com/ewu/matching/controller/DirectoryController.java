@@ -1,0 +1,4 @@
+package com.ewu.matching.controller;
+import com.ewu.matching.dto.response.ProfileSummaryResponse;import com.ewu.matching.service.DirectoryService;import io.swagger.v3.oas.annotations.tags.Tag;import lombok.RequiredArgsConstructor;import org.springframework.http.ResponseEntity;import org.springframework.security.access.prepost.PreAuthorize;import org.springframework.web.bind.annotation.*;import java.util.List;
+@Tag(name="Directory",description="Search students, faculty and companies") @RestController @RequestMapping("/api/directory") @RequiredArgsConstructor @PreAuthorize("isAuthenticated()")
+public class DirectoryController {private final DirectoryService service;@GetMapping("/search") public ResponseEntity<List<ProfileSummaryResponse>> search(@RequestParam String q){return ResponseEntity.ok(service.search(q));}}

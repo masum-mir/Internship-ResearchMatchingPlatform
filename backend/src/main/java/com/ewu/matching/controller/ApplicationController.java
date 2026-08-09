@@ -9,14 +9,18 @@ import com.ewu.matching.security.access.IsCompanyOrFaculty;
 import com.ewu.matching.security.access.IsFaculty;
 import com.ewu.matching.security.access.IsStudent;
 import com.ewu.matching.service.ApplicationService;
+import com.ewu.matching.service.FileStorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @Tag(name = "Applications", description = "Student applications + post-owner applicant management")
@@ -26,12 +30,35 @@ import java.util.List;
 public class ApplicationController {
 
     private final ApplicationService applicationService;
+    private final FileStorageService fileStorageService;
 
-    @Operation(summary = "Apply to an internship or research post (STUDENT). Match score is computed and stored.")
+    @Operation(summary = "Apply using JSON; saved profile resume URL can be supplied")
     @IsStudent
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApplicationResponse> apply(@Valid @RequestBody ApplicationRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(applicationService.apply(request));
+    }
+
+    @Operation(summary = "Apply and upload a resume in the same request")
+    @IsStudent
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApplicationResponse> applyWithResume(
+            @Valid @RequestPart("data") ApplicationRequest request,
+            @RequestPart(value = "resume", required = false) MultipartFile resume) throws IOException {
+
+        String resumeUrl = request.resumeUrl();
+        if (resume != null && !resume.isEmpty()) {
+            resumeUrl = fileStorageService.saveResume(resume);
+        }
+
+        ApplicationRequest merged = new ApplicationRequest(
+                request.targetType(),
+                request.targetId(),
+                resumeUrl,
+                request.coverLetter(),
+                request.applicantNote()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(applicationService.apply(merged));
     }
 
     @Operation(summary = "Withdraw one of my applications (STUDENT)")
@@ -48,8 +75,6 @@ public class ApplicationController {
     public ResponseEntity<List<ApplicationResponse>> myApplications() {
         return ResponseEntity.ok(applicationService.myApplications());
     }
-
-    // ---------- Post owners: applicant inbox ----------
 
     @Operation(summary = "Applicants for one of my internships, sorted by match score (COMPANY)")
     @IsCompany

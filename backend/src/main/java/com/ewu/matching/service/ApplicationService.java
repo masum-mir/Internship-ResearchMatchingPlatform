@@ -9,10 +9,13 @@ import java.util.List;
 
 public interface ApplicationService {
     ApplicationResponse apply(ApplicationRequest request);
+
     void withdraw(Long applicationId);
+
     List<ApplicationResponse> myApplications();
 
     List<ApplicantResponse> getApplicantsForInternship(Long internshipId);
+
     List<ApplicantResponse> getApplicantsForResearch(Long researchId);
 
     ApplicationResponse updateStatus(Long applicationId, ApplicationStatusRequest request);

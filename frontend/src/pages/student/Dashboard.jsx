@@ -243,7 +243,7 @@ export default function StudentDashboard() {
               <div className="card border-0 shadow-sm h-100">
                 <div className="card-body">
                   <h5 className="card-title mb-3">
-                    <i className="bi bi-stars me-1 text-warning" /> Recommended for you
+                     Recommended for you
                   </h5>
 
                   {matchesError && <Notice type="danger" message={matchesError} />}
@@ -300,7 +300,7 @@ export default function StudentDashboard() {
               <div className="card border-0 shadow-sm h-100">
                 <div className="card-body">
                   <h5 className="card-title mb-3">
-                    <i className="bi bi-calendar-event me-1 text-danger" /> Upcoming deadlines
+                     Upcoming deadlines
                   </h5>
 
                   {matchesLoading ? (

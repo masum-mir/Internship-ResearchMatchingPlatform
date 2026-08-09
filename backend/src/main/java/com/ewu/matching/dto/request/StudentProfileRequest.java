@@ -13,8 +13,16 @@ public record StudentProfileRequest(
         @DecimalMin(value = "0.0", message = "CGPA cannot be negative")
         @DecimalMax(value = "4.0", message = "CGPA cannot exceed 4.0")
         BigDecimal cgpa,
+        String headline,
+        String bio,
         String contactNumber,
         String address,
         String profilePicture,
-        String coverPicture
+        String coverPicture,
+        String resumeUrl,
+        String university,
+        String portfolioUrl,
+        String githubUrl,
+        String linkedinUrl,
+        Boolean openToWork
 ) {}

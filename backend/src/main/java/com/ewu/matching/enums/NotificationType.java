@@ -1,0 +1,15 @@
+package com.ewu.matching.enums;
+
+public enum NotificationType {
+    CONNECTION_REQUEST,
+    CONNECTION_ACCEPTED,
+    NEW_FOLLOWER,
+    POST_REACTED,
+    POST_COMMENTED,
+    POST_SHARED,
+    NEW_MESSAGE,
+    APPLICATION_SUBMITTED,
+    APPLICATION_STATUS_CHANGED,
+    NEW_OPPORTUNITY,
+    SKILL_ENDORSED
+}

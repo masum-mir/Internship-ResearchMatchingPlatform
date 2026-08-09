@@ -8,6 +8,5 @@ public interface FacultyService {
     FacultyProfileResponse getMyProfile();
 
     FacultyProfileResponse updateMyProfile(
-            FacultyProfileRequest request
-    );
+            FacultyProfileRequest request);
 }

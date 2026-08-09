@@ -1,7 +1,5 @@
 package com.ewu.matching.dto.request;
 
-import jakarta.validation.constraints.Size;
-
 public record FacultyProfileRequest(
         String name,
         String department,
@@ -11,13 +9,13 @@ public record FacultyProfileRequest(
         String researchInterests,
         String contactNumber,
         String university,
+        String location,
         String profilePicture,
         String coverPicture,
         String googleScholarUrl,
         String orcidId,
         String researchgateUrl,
         String linkedinUrl,
-        String universityProfileUrl
-
-) {
-}
+        String universityProfileUrl,
+        Boolean availableForSupervision
+) {}

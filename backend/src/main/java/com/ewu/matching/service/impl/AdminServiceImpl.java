@@ -11,6 +11,7 @@ import com.ewu.matching.entity.Faculty;
 import com.ewu.matching.entity.Role;
 import com.ewu.matching.entity.Student;
 import com.ewu.matching.entity.User;
+import com.ewu.matching.entity.Post;
 import com.ewu.matching.enums.OpportunityType;
 import com.ewu.matching.enums.RoleType;
 import com.ewu.matching.exception.BadRequestException;
@@ -25,6 +26,7 @@ import com.ewu.matching.repository.ResearchOpportunityRepository;
 import com.ewu.matching.repository.RoleRepository;
 import com.ewu.matching.repository.StudentRepository;
 import com.ewu.matching.repository.UserRepository;
+import com.ewu.matching.repository.PostRepository;
 import com.ewu.matching.security.CurrentUserProvider;
 import com.ewu.matching.service.AdminService;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +51,7 @@ public class AdminServiceImpl implements AdminService {
     private final RoleRepository roleRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PostRepository postRepository;
     private final CurrentUserProvider currentUser;
 
     @Override
@@ -90,6 +93,17 @@ public class AdminServiceImpl implements AdminService {
             }
             researchRepository.deleteById(postId);
         }
+    }
+
+    @Override
+    @Transactional
+    public void deleteSocialPost(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> ResourceNotFoundException.of("Post", postId));
+        post.setDeleted(true);
+        post.setContent(null);
+        post.setMediaUrl(null);
+        postRepository.save(post);
     }
 
     @Override
@@ -141,7 +155,8 @@ public class AdminServiceImpl implements AdminService {
             company.get().setCompanyName(newName);
             companyRepository.save(company.get());
         } else {
-            throw new BadRequestException("This user has no editable profile (no student, faculty, or company record).");
+            throw new BadRequestException(
+                    "This user has no editable profile (no student, faculty, or company record).");
         }
         return toResponse(u);
     }
@@ -183,7 +198,8 @@ public class AdminServiceImpl implements AdminService {
                     companyRepository.save(Company.builder().user(u).companyName(existingName).build());
                 }
             }
-            case ADMIN -> { /* no dedicated profile row for admins */ }
+            case ADMIN -> {
+                /* no dedicated profile row for admins */ }
         }
 
         return toResponse(u);

@@ -95,7 +95,7 @@ export default function ProfileHeader({
 </div>
             <div className="ms-3 mb-1">
               <h4 className="mb-0 profile-name">{name || '—'}</h4>
-              {subtitle && <div className="profile-subtitle">{subtitle}</div>}
+              {subtitle && <div className="Recommended for you-subtitle">{subtitle}</div>}
             </div>
           </div>
           {actions && <div className="mb-1">{actions}</div>}

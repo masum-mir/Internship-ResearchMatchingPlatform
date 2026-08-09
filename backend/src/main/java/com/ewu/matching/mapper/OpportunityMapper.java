@@ -9,78 +9,33 @@ import com.ewu.matching.entity.ResearchOpportunity;
 
 import java.util.HashSet;
 
-/** Entity -> response mapping for internships and research opportunities. */
 public final class OpportunityMapper {
-
     private OpportunityMapper() {}
 
     public static InternshipResponse toInternshipResponse(Internship i) {
         return new InternshipResponse(
-                i.getId(),
-                i.getTitle(),
-                i.getDescription(),
-                ProfileMapper.toSkillList(i.getRequiredSkills()),
-                i.getRequiredCgpa(),
-                i.getLocation(),
-                i.getDeadline(),
-                i.getVacancies(),
-                new HashSet<>(i.getTargetDepartments()),
-                i.getStatus(),
-                i.getCreatedAt(),
+                i.getId(), i.getTitle(), i.getDescription(), i.getResponsibilities(), i.getRequirements(), i.getBenefits(),
+                ProfileMapper.toSkillList(i.getRequiredSkills()), i.getRequiredCgpa(), i.getLocation(),
+                i.getWorkMode(), i.getEmploymentType(), i.getSalaryMin(), i.getSalaryMax(), i.getSalaryCurrency(),
+                i.getExperienceLevel(), i.getDeadline(), i.getVacancies(), new HashSet<>(i.getTargetDepartments()),
+                i.getStatus(), i.getCreatedAt(), i.getUpdatedAt(),
                 i.getCompany() != null ? i.getCompany().getId() : null,
-                i.getCompany() != null ? i.getCompany().getCompanyName() : null
-        );
+                i.getCompany() != null && i.getCompany().getUser() != null ? i.getCompany().getUser().getId() : null,
+                i.getCompany() != null ? i.getCompany().getCompanyName() : null);
     }
 
-    public static ResearchResponse toResearchResponse(
-            ResearchOpportunity research
-    ) {
-        if (research == null) {
-            return null;
-        }
-
-        Faculty faculty = research.getFaculty();
-
-        FacultyProfileResponse facultyProfile =
-                faculty != null
-                        ? ProfileMapper
-                        .toFacultyProfileResponse(
-                                faculty
-                        )
-                        : null;
-
+    public static ResearchResponse toResearchResponse(ResearchOpportunity r) {
+        if (r == null) return null;
+        Faculty f = r.getFaculty();
+        FacultyProfileResponse fp = f == null ? null : ProfileMapper.toFacultyProfileResponse(f);
         return new ResearchResponse(
-                research.getId(),
-                research.getTopic(),
-                research.getDescription(),
-                research.getResearchArea(),
-                research.getMinCgpa(),
-                research.getDuration(),
-                research.getAvailablePositions(),
-                research.getApplicationDeadline(),
-                research.getStatus(),
-
-                faculty != null
-                        ? faculty.getId()
-                        : null,
-
-                faculty != null
-                        ? faculty.getName()
-                        : null,
-
-                research.getTargetDepartments(),
-
-                research.getRequiredSkills()
-                        .stream()
-                        .map(
-                                ProfileMapper
-                                        ::toSkillResponse
-                        )
-                        .toList(),
-
-                research.getCreatedAt(),
-
-                facultyProfile
-        );
+                r.getId(), r.getTopic(), r.getDescription(), r.getResearchArea(), r.getEligibility(), r.getResponsibilities(),
+                r.getMinCgpa(), r.getDuration(), r.getAvailablePositions(), r.getApplicationDeadline(), r.getLocation(),
+                r.getWorkMode(), r.isFunded(), r.getStipendAmount(), r.getStipendCurrency(), r.getStatus(),
+                f != null ? f.getId() : null,
+                f != null && f.getUser() != null ? f.getUser().getId() : null,
+                f != null ? f.getName() : null,
+                r.getTargetDepartments(), ProfileMapper.toSkillList(r.getRequiredSkills()),
+                r.getCreatedAt(), r.getUpdatedAt(), fp);
     }
 }

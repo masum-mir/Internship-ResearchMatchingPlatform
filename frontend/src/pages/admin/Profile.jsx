@@ -2,67 +2,41 @@ import { useEffect, useState } from 'react';
 import { adminApi } from '../../api/adminApi.js';
 import { apiMessage } from '../../api/axiosClient.js';
 import Loader from '../../components/Loader.jsx';
-import Notice from '../../components/Toast.jsx';
-import ProfileHeader from '../../components/ProfileHeader.jsx';
+import PageTitle from '../../components/PageTitle.jsx';
 
 export default function AdminProfile() {
   const [p, setP] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [notice, setNotice] = useState({ type: '', message: '' });
+  const [error, setError] = useState('');
 
-  const load = () =>
-    adminApi.getMyProfile().then(setP)
-      .catch((e) => setNotice({ type: 'danger', message: apiMessage(e) }));
+  useEffect(() => {
+    adminApi.getMyProfile().then(setP).catch((e) => setError(apiMessage(e)));
+  }, []);
 
-  useEffect(() => { load().finally(() => setLoading(false)); }, []);
-
-  const handleProfileImageUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    try {
-      const uploadResponse = await adminApi.uploadProfileImage(file);
-      await adminApi.updateMyProfile({ profilePicture: uploadResponse.filename });
-      await load();
-    } catch (err) {
-      setNotice({ type: 'danger', message: apiMessage(err) });
-    }
-  };
-
-  const handleCoverImageUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    try {
-      const uploadResponse = await adminApi.uploadCoverImage(file);
-      await adminApi.updateMyProfile({ coverPicture: uploadResponse.filename });
-      await load();
-    } catch (err) {
-      setNotice({ type: 'danger', message: apiMessage(err) });
-    }
-  };
-
-  if (loading) return <Loader />;
-  if (!p) return <Notice type="danger" message={notice.message} />;
+  if (!p && !error) return <Loader />;
 
   return (
-    <div style={{ maxWidth: 720 }}>
-      <ProfileHeader
-        name={p.email}
-        subtitle="Administrator"
-        meta={[`Roles: ${(p.roles || []).join(', ')}`]}
-        profilePicture={p.profilePicture}
-        coverPicture={p.coverPicture}
-        onProfileImageUpload={handleProfileImageUpload}
-        onCoverImageUpload={handleCoverImageUpload}
-      />
-      <Notice type={notice.type} message={notice.message} onClose={() => setNotice({ type: '', message: '' })} />
-      <div className="card border-0 shadow-sm">
-        <div className="card-body">
+    <div style={{ maxWidth: 760 }}>
+      <PageTitle title="Administrator account" subtitle="Platform access and account information" />
+      {error && <div className="alert alert-danger">{error}</div>}
+
+      {p && (
+        <div className="social-card profile-section">
+          <div className="admin-account-icon"><i className="bi bi-shield-lock-fill" /></div>
+          <h5 className="mt-3">{p.name || 'Administrator'}</h5>
+          <div className="text-muted">{p.email}</div>
+          <div className="d-flex flex-wrap gap-2 mt-3">
+            {(p.roles || []).map((role) => <span className="badge bg-primary" key={role}>{role}</span>)}
+            <span className={`badge ${p.blocked ? 'bg-danger' : 'bg-success'}`}>
+              {p.blocked ? 'Blocked' : 'Active'}
+            </span>
+          </div>
+          <hr />
           <p className="text-muted mb-0">
-            Admin accounts only manage a profile picture and cover photo here — contact
-            info is tied to your login email.
+            Admin accounts do not have a dedicated profile-picture row in the current backend.
+            Use the public feed, network, user management and reporting tools from the sidebar.
           </p>
         </div>
-      </div>
+      )}
     </div>
   );
 }

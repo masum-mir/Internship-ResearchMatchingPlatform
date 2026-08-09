@@ -1,504 +1,159 @@
-// import { useEffect, useState } from 'react';
-// import { applicationApi } from '../../api/applicationApi.js';
-// import { apiMessage } from '../../api/axiosClient.js';
-// import Loader from '../../components/Loader.jsx';
-// import Notice from '../../components/Toast.jsx';
-// import EmptyState from '../../components/EmptyState.jsx';
-// import StatusBadge from '../../components/StatusBadge.jsx';
-// import MatchScoreBadge from '../../components/MatchScoreBadge.jsx';
-
-// export default function MyApplications() {
-//   const [items, setItems] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [notice, setNotice] = useState({ type: '', message: '' });
-
-//   const load = () => {
-//     setLoading(true);
-//     applicationApi.mine().then(setItems)
-//       .catch((e) => setNotice({ type: 'danger', message: apiMessage(e) }))
-//       .finally(() => setLoading(false));
-//   };
-//   useEffect(() => { load(); }, []);
-
-//   const withdraw = async (id) => {
-//     try { await applicationApi.withdraw(id); load(); }
-//     catch (e) { setNotice({ type: 'danger', message: apiMessage(e) }); }
-//   };
-
-//   if (loading) return <Loader />;
-
-//   return (
-//     <div>
-//       <h4 className="mb-3">My Applications</h4>
-//       <Notice type={notice.type} message={notice.message} onClose={() => setNotice({ type: '', message: '' })} />
-//       {items.length === 0 ? (
-//         <EmptyState icon="bi-file-earmark-text" title="No applications yet" message="Apply from the Internships or Research pages." />
-//       ) : (
-//         <div className="card border-0 shadow-sm">
-//           <div className="table-responsive">
-//             <table className="table table-hover align-middle mb-0">
-//               <thead className="table-light">
-//                 <tr><th>Opportunity</th><th>Type</th><th>Match</th><th>Status</th><th>Applied</th><th></th></tr>
-//               </thead>
-//               <tbody>
-//                 {items.map((a) => (
-//                   <tr key={a.id}>
-//                     <td>{a.opportunityTitle}</td>
-//                     <td><span className="badge bg-light text-dark border">{a.targetType}</span></td>
-//                     <td><MatchScoreBadge score={a.matchScore} /></td>
-//                     <td><StatusBadge status={a.status} /></td>
-//                     <td className="small text-muted">{a.appliedAt?.slice(0, 10)}</td>
-//                     <td className="text-end">
-//                       <button className="btn btn-sm btn-outline-danger" onClick={() => withdraw(a.id)}>Withdraw</button>
-//                     </td>
-//                   </tr>
-//                 ))}
-//               </tbody>
-//             </table>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
-import {
-  useCallback,
-  useEffect,
-  useState
-} from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { applicationApi } from '../../api/applicationApi.js';
 import { apiMessage } from '../../api/axiosClient.js';
+import { resolveUploadUrl } from '../../utils/imageUrl.js';
+import { enumLabel, formatDate } from '../../utils/format.js';
 import Loader from '../../components/Loader.jsx';
-import Notice from '../../components/Toast.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
-import StatusBadge from '../../components/StatusBadge.jsx';
 import MatchScoreBadge from '../../components/MatchScoreBadge.jsx';
-import '../../css/MyApplications.css';
+import StatusBadge from '../../components/StatusBadge.jsx';
+import PageTitle from '../../components/PageTitle.jsx';
+import Modal from '../../components/Modal.jsx';
 
-function unwrap(response) {
-  return response?.data ?? response;
-}
-
-function formatDate(value) {
-  if (!value) return 'Not specified';
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat('en', {
-    dateStyle: 'medium',
-    timeStyle: 'short'
-  }).format(date);
-}
-
-function ApplicationDetailsModal({
-  application,
-  withdrawing,
-  onClose,
-  onWithdraw
-}) {
-  useEffect(() => {
-    const handleEscape = (event) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = '';
-    };
-  }, [onClose]);
-
-  if (!application) return null;
-
-  const optionalDetails = [
-    {
-      label: 'Company',
-      value:
-        application.companyName ||
-        application.company
-    },
-    {
-      label: 'Faculty',
-      value:
-        application.facultyName ||
-        application.faculty
-    },
-    {
-      label: 'Department',
-      value: application.department
-    },
-    {
-      label: 'Location',
-      value: application.location
-    },
-    {
-      label: 'Deadline',
-      value: application.deadline
-        ? formatDate(application.deadline)
-        : null
-    },
-    {
-      label: 'Last updated',
-      value: application.updatedAt
-        ? formatDate(application.updatedAt)
-        : null
-    }
-  ].filter((item) => item.value);
-
-  return (
-    <div
-      className="application-modal-backdrop"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <div
-        className="application-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="application-details-title"
-      >
-        <div className="application-modal-header">
-          <div>
-            <span className="application-modal-label">
-              Application Details
-            </span>
-
-            <h2 id="application-details-title">
-              {application.opportunityTitle ||
-                'Untitled opportunity'}
-            </h2>
-          </div>
-
-          <button
-            type="button"
-            className="application-modal-close"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <i className="bi bi-x-lg" />
-          </button>
-        </div>
-
-        <div className="application-modal-body">
-          <div className="application-modal-status-row">
-            <div>
-              <span>Application status</span>
-              <StatusBadge status={application.status} />
-            </div>
-
-            <div>
-              <span>Match score</span>
-              <MatchScoreBadge
-                score={application.matchScore}
-              />
-            </div>
-          </div>
-
-          <div className="application-detail-grid">
-            <div className="application-detail-item">
-              <span>Opportunity type</span>
-              <strong>
-                {application.targetType ||
-                  'Not specified'}
-              </strong>
-            </div>
-
-            <div className="application-detail-item">
-              <span>Applied on</span>
-              <strong>
-                {formatDate(application.appliedAt)}
-              </strong>
-            </div>
-
-            <div className="application-detail-item">
-              <span>Application ID</span>
-              <strong>#{application.id}</strong>
-            </div>
-
-            {optionalDetails.map((item) => (
-              <div
-                className="application-detail-item"
-                key={item.label}
-              >
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </div>
-            ))}
-          </div>
-
-          {application.description && (
-            <div className="application-description">
-              <span>Description</span>
-              <p>{application.description}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="application-modal-footer">
-          <button
-            type="button"
-            className="btn btn-sm btn-light"
-            onClick={onClose}
-          >
-            Close
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-sm btn-outline-danger"
-            disabled={withdrawing}
-            onClick={() => onWithdraw(application.id)}
-          >
-            {withdrawing ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" />
-                Withdrawing...
-              </>
-            ) : (
-              <>
-                <i className="bi bi-x-circle me-2" />
-                Withdraw Application
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+const FILTERS = ['ALL', 'PENDING', 'SHORTLISTED', 'ACCEPTED', 'REJECTED', 'WITHDRAWN'];
 
 export default function MyApplications() {
   const [items, setItems] = useState([]);
-  const [selectedApplication, setSelectedApplication] =
-    useState(null);
+  const [filter, setFilter] = useState('ALL');
+  const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [withdrawingId, setWithdrawingId] =
-    useState(null);
-  const [notice, setNotice] = useState({
-    type: '',
-    message: ''
-  });
+  const [notice, setNotice] = useState({ type: '', message: '' });
 
   const load = useCallback(async () => {
-    setLoading(true);
-
     try {
-      const response = await applicationApi.mine();
-      const data = unwrap(response);
-
-      setItems(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setNotice({
-        type: 'danger',
-        message: apiMessage(error)
-      });
+      setItems(await applicationApi.mine());
+    } catch (e) {
+      setNotice({ type: 'danger', message: apiMessage(e) });
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
-  const withdraw = async (applicationId) => {
-    const confirmed = window.confirm(
-      'Are you sure you want to withdraw this application?'
-    );
+  const filtered = useMemo(
+    () => filter === 'ALL' ? items : items.filter((x) => x.status === filter),
+    [items, filter]
+  );
 
-    if (!confirmed) return;
-
-    setWithdrawingId(applicationId);
-
+  const withdraw = async (item) => {
+    if (!window.confirm(`Withdraw your application for “${item.opportunityTitle}”?`)) return;
     try {
-      await applicationApi.withdraw(applicationId);
-
-      setItems((current) =>
-        current.filter(
-          (item) => item.id !== applicationId
-        )
-      );
-
-      setSelectedApplication(null);
-
-      setNotice({
-        type: 'success',
-        message: 'Application withdrawn successfully.'
-      });
-    } catch (error) {
-      setNotice({
-        type: 'danger',
-        message: apiMessage(error)
-      });
-    } finally {
-      setWithdrawingId(null);
+      await applicationApi.withdraw(item.id);
+      await load();
+      setNotice({ type: 'success', message: 'Application withdrawn.' });
+    } catch (e) {
+      setNotice({ type: 'danger', message: apiMessage(e) });
     }
   };
 
-  if (loading) return <Loader />;
-
   return (
-    <div className="my-applications-page">
-      <div className="my-applications-header">
-        <div>
-          <h1>My Applications</h1>
-          <p>
-            View and manage your submitted applications.
-          </p>
-        </div>
-
-        <span className="my-applications-count">
-          {items.length}{' '}
-          {items.length === 1
-            ? 'Application'
-            : 'Applications'}
-        </span>
-      </div>
-
-      <Notice
-        type={notice.type}
-        message={notice.message}
-        onClose={() =>
-          setNotice({ type: '', message: '' })
-        }
+    <div>
+      <PageTitle
+        title="My Applications"
+        subtitle="Track every internship and research application from one place."
       />
 
-      {items.length === 0 ? (
-        <EmptyState
-          icon="bi-file-earmark-text"
-          title="No applications yet"
-          message="Apply from the Internships or Research pages."
-        />
+      {notice.message && <div className={`alert alert-${notice.type}`}>{notice.message}</div>}
+
+      <div className="application-filter social-card mb-3">
+        {FILTERS.map((x) => (
+          <button key={x} type="button" className={filter === x ? 'active' : ''} onClick={() => setFilter(x)}>
+            {enumLabel(x)}
+            {x !== 'ALL' && (
+              <span>{items.filter((a) => a.status === x).length}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {loading ? <Loader /> : filtered.length === 0 ? (
+        <div className="social-card">
+          <EmptyState
+            icon="bi-file-earmark-text"
+            title="No applications here"
+            message={filter === 'ALL' ? 'Apply to an internship or research opportunity to get started.' : null}
+          />
+        </div>
       ) : (
-        <div className="my-applications-card">
-          <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0 my-applications-table">
-              <thead>
-                <tr>
-                  <th>Opportunity</th>
-                  <th>Type</th>
-                  <th>Match</th>
-                  <th>Status</th>
-                  <th>Applied</th>
-                  <th className="text-end">Action</th>
-                </tr>
-              </thead>
+        <div className="application-list">
+          {filtered.map((item) => (
+            <article className="social-card application-card" key={item.id}>
+              <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                <div>
+                  <div className="application-type">{enumLabel(item.targetType)}</div>
+                  <h5 className="mb-2">{item.opportunityTitle}</h5>
+                  <div className="d-flex gap-2 flex-wrap">
+                    <StatusBadge status={item.status} />
+                    <MatchScoreBadge score={item.matchScore} />
+                  </div>
+                </div>
+                <div className="text-muted small">Applied {formatDate(item.appliedAt)}</div>
+              </div>
 
-              <tbody>
-                {items.map((application) => {
-                  const isWithdrawing =
-                    withdrawingId === application.id;
+              {item.reviewerNote && (
+                <div className="reviewer-note mt-3">
+                  <strong>Reviewer update:</strong> {item.reviewerNote}
+                </div>
+              )}
 
-                  return (
-                    <tr
-                      key={application.id}
-                      className="application-clickable-row"
-                      onClick={() =>
-                        setSelectedApplication(application)
-                      }
-                    >
-                      <td>
-                        <button
-                          type="button"
-                          className="application-title-button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setSelectedApplication(application);
-                          }}
-                        >
-                          {application.opportunityTitle ||
-                            'Untitled opportunity'}
-                        </button>
-
-                        <span className="application-view-hint">
-                          Click to view details
-                        </span>
-                      </td>
-
-                      <td>
-                        <span className="application-type-badge">
-                          {application.targetType || '—'}
-                        </span>
-                      </td>
-
-                      <td>
-                        <MatchScoreBadge
-                          score={application.matchScore}
-                        />
-                      </td>
-
-                      <td>
-                        <StatusBadge
-                          status={application.status}
-                        />
-                      </td>
-
-                      <td className="application-date">
-                        {formatDate(application.appliedAt)}
-                      </td>
-
-                      <td className="text-end">
-                        <div className="application-actions">
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-secondary"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setSelectedApplication(application);
-                            }}
-                          >
-                            <i className="bi bi-eye me-1" />
-                            View
-                          </button>
-
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-danger"
-                            disabled={isWithdrawing}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              withdraw(application.id);
-                            }}
-                          >
-                            {isWithdrawing ? (
-                              <span className="spinner-border spinner-border-sm" />
-                            ) : (
-                              'Withdraw'
-                            )}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+              <div className="application-actions">
+                <button className="btn btn-outline-primary btn-sm" onClick={() => setDetail(item)}>
+                  View application
+                </button>
+                {!['ACCEPTED', 'WITHDRAWN'].includes(item.status) && (
+                  <button className="btn btn-outline-danger btn-sm ms-auto" onClick={() => withdraw(item)}>
+                    Withdraw
+                  </button>
+                )}
+              </div>
+            </article>
+          ))}
         </div>
       )}
 
-      {selectedApplication && (
-        <ApplicationDetailsModal
-          application={selectedApplication}
-          withdrawing={
-            withdrawingId === selectedApplication.id
-          }
-          onClose={() => setSelectedApplication(null)}
-          onWithdraw={withdraw}
-        />
-      )}
+      <Modal show={Boolean(detail)} title={detail?.opportunityTitle || 'Application'} onClose={() => setDetail(null)} size="lg">
+        {detail && (
+          <div>
+            <div className="d-flex gap-2 flex-wrap mb-4">
+              <StatusBadge status={detail.status} />
+              <MatchScoreBadge score={detail.matchScore} />
+              <span className="badge bg-light text-dark border">{enumLabel(detail.targetType)}</span>
+            </div>
+
+            <div className="detail-grid mb-4">
+              <div><span>Applied</span><strong>{formatDate(detail.appliedAt)}</strong></div>
+              <div><span>Last updated</span><strong>{formatDate(detail.updatedAt)}</strong></div>
+              {detail.reviewedAt && <div><span>Reviewed</span><strong>{formatDate(detail.reviewedAt)}</strong></div>}
+              {detail.withdrawnAt && <div><span>Withdrawn</span><strong>{formatDate(detail.withdrawnAt)}</strong></div>}
+            </div>
+
+            {detail.coverLetter && (
+              <section className="opportunity-detail-section">
+                <h6>Cover letter</h6>
+                <div className="pre-line">{detail.coverLetter}</div>
+              </section>
+            )}
+            {detail.applicantNote && (
+              <section className="opportunity-detail-section">
+                <h6>Your note</h6>
+                <div className="pre-line">{detail.applicantNote}</div>
+              </section>
+            )}
+            {detail.reviewerNote && (
+              <section className="opportunity-detail-section">
+                <h6>Reviewer note</h6>
+                <div className="pre-line">{detail.reviewerNote}</div>
+              </section>
+            )}
+            {detail.resumeUrl && (
+              <a className="btn btn-outline-primary" href={resolveUploadUrl(detail.resumeUrl)} target="_blank" rel="noreferrer">
+                <i className="bi bi-file-earmark-pdf me-1" /> Open submitted resume
+              </a>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

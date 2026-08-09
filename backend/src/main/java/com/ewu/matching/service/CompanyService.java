@@ -5,5 +5,6 @@ import com.ewu.matching.dto.response.CompanyProfileResponse;
 
 public interface CompanyService {
     CompanyProfileResponse getMyProfile();
+
     CompanyProfileResponse updateMyProfile(CompanyProfileRequest request);
 }

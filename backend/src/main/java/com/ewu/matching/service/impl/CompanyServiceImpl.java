@@ -14,8 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class CompanyServiceImpl implements CompanyService {
-
-    private final CompanyRepository companyRepository;
+    private final CompanyRepository repository;
     private final CurrentUserProvider currentUser;
 
     @Override
@@ -26,15 +25,37 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
-    public CompanyProfileResponse updateMyProfile(CompanyProfileRequest req) {
+    public CompanyProfileResponse updateMyProfile(CompanyProfileRequest r) {
         Company c = currentUser.currentCompany();
-        if (req.companyName() != null) c.setCompanyName(req.companyName());
-        if (req.description() != null) c.setDescription(req.description());
-        if (req.website() != null) c.setWebsite(req.website());
-        if (req.location() != null) c.setLocation(req.location());
-        if (req.contactNumber() != null) c.setContactNumber(req.contactNumber());
-        if (req.profilePicture() != null) c.setProfilePicture(req.profilePicture());
-        if (req.coverPicture() != null) c.setCoverPicture(req.coverPicture());
-        return ProfileMapper.toCompanyProfile(companyRepository.save(c));
+        if (r.companyName() != null)
+            c.setCompanyName(clean(r.companyName()));
+        if (r.description() != null)
+            c.setDescription(clean(r.description()));
+        if (r.website() != null)
+            c.setWebsite(clean(r.website()));
+        if (r.location() != null)
+            c.setLocation(clean(r.location()));
+        if (r.industry() != null)
+            c.setIndustry(clean(r.industry()));
+        if (r.companySize() != null)
+            c.setCompanySize(clean(r.companySize()));
+        if (r.foundedDate() != null)
+            c.setFoundedDate(r.foundedDate());
+        if (r.contactNumber() != null)
+            c.setContactNumber(clean(r.contactNumber()));
+        if (r.companyEmail() != null)
+            c.setCompanyEmail(clean(r.companyEmail()));
+        if (r.profilePicture() != null)
+            c.setProfilePicture(clean(r.profilePicture()));
+        if (r.coverPicture() != null)
+            c.setCoverPicture(clean(r.coverPicture()));
+        return ProfileMapper.toCompanyProfile(repository.save(c));
+    }
+
+    private String clean(String s) {
+        if (s == null)
+            return null;
+        String v = s.trim();
+        return v.isEmpty() ? null : v;
     }
 }

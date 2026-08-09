@@ -24,9 +24,9 @@ public interface InternshipRepository
 
     long countByStatus(PostStatus status);
 
-    @EntityGraph(attributePaths = {"requiredSkills", "targetDepartments", "company"})
+    @EntityGraph(attributePaths = { "requiredSkills", "targetDepartments", "company" })
     Optional<Internship> findWithDetailsById(Long id);
 
-    @EntityGraph(attributePaths = {"requiredSkills", "targetDepartments", "company"})
+    @EntityGraph(attributePaths = { "requiredSkills", "targetDepartments", "company" })
     List<Internship> findAllByStatus(PostStatus status);
 }

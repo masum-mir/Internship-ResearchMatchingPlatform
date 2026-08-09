@@ -15,13 +15,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class StudentServiceImpl implements StudentService {
-
     private final StudentRepository studentRepository;
     private final ProjectRepository projectRepository;
     private final CertificationRepository certificationRepository;
@@ -30,9 +28,7 @@ public class StudentServiceImpl implements StudentService {
 
     private Student loadCurrentDetailed() {
         Long id = currentUser.currentStudent().getId();
-        Student student = studentRepository.findWithDetailsById(id)
-                .orElseThrow(() -> ResourceNotFoundException.of("Student", id));
-        return student;
+        return studentRepository.findWithDetailsById(id).orElseThrow(() -> ResourceNotFoundException.of("Student", id));
     }
 
     @Override
@@ -43,30 +39,52 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     @Transactional
-    public StudentProfileResponse updateMyProfile(StudentProfileRequest req) {
+    public StudentProfileResponse updateMyProfile(StudentProfileRequest r) {
         Student s = currentUser.currentStudent();
-        if (StringUtils.hasText(req.studentId()) && !req.studentId().equals(s.getStudentId())
-                && studentRepository.existsByStudentId(req.studentId())) {
-            throw new DuplicateResourceException("Student ID already in use: " + req.studentId());
-        }
-        if (req.name() != null) s.setName(req.name());
-        if (req.studentId() != null) s.setStudentId(req.studentId());
-        if (req.department() != null) s.setDepartment(req.department());
-        if (req.cgpa() != null) s.setCgpa(req.cgpa());
-        if (req.contactNumber() != null) s.setContactNumber(req.contactNumber());
-        if (req.address() != null) s.setAddress(req.address());
-        if (req.profilePicture() != null) s.setProfilePicture(req.profilePicture());
-        if (req.coverPicture() != null) s.setCoverPicture(req.coverPicture());
+        if (StringUtils.hasText(r.studentId()) && !r.studentId().equals(s.getStudentId())
+                && studentRepository.existsByStudentId(r.studentId()))
+            throw new DuplicateResourceException("Student ID already in use: " + r.studentId());
+        if (r.name() != null)
+            s.setName(clean(r.name()));
+        if (r.studentId() != null)
+            s.setStudentId(clean(r.studentId()));
+        if (r.department() != null)
+            s.setDepartment(clean(r.department()));
+        if (r.batch() != null)
+            s.setBatch(clean(r.batch()));
+        if (r.cgpa() != null)
+            s.setCgpa(r.cgpa());
+        if (r.headline() != null)
+            s.setHeadline(clean(r.headline()));
+        if (r.bio() != null)
+            s.setBio(clean(r.bio()));
+        if (r.contactNumber() != null)
+            s.setContactNumber(clean(r.contactNumber()));
+        if (r.address() != null)
+            s.setAddress(clean(r.address()));
+        if (r.profilePicture() != null)
+            s.setProfilePicture(clean(r.profilePicture()));
+        if (r.coverPicture() != null)
+            s.setCoverPicture(clean(r.coverPicture()));
+        if (r.resumeUrl() != null)
+            s.setResumeUrl(clean(r.resumeUrl()));
+        if (r.portfolioUrl() != null)
+            s.setPortfolioUrl(clean(r.portfolioUrl()));
+        if (r.githubUrl() != null)
+            s.setGithubUrl(clean(r.githubUrl()));
+        if (r.linkedinUrl() != null)
+            s.setLinkedinUrl(clean(r.linkedinUrl()));
+        if (r.openToWork() != null)
+            s.setOpenToWork(r.openToWork());
         studentRepository.save(s);
         return ProfileMapper.toStudentProfile(loadCurrentDetailed());
     }
 
-    // ---- Skills ----
     @Override
     @Transactional
-    public List<SkillResponse> addSkill(SkillRequest req) {
+    public List<SkillResponse> addSkill(SkillRequest r) {
         Student s = currentUser.currentStudent();
-        Skill skill = skillService.resolveOrCreate(req);
+        Skill skill = skillService.resolveOrCreate(r);
         s.getSkills().add(skill);
         studentRepository.save(s);
         return ProfileMapper.toSkillList(s.getSkills());
@@ -76,7 +94,7 @@ public class StudentServiceImpl implements StudentService {
     @Transactional
     public List<SkillResponse> removeSkill(Long skillId) {
         Student s = currentUser.currentStudent();
-        s.getSkills().removeIf(sk -> sk.getId().equals(skillId));
+        s.getSkills().removeIf(x -> x.getId().equals(skillId));
         studentRepository.save(s);
         return ProfileMapper.toSkillList(s.getSkills());
     }
@@ -87,35 +105,42 @@ public class StudentServiceImpl implements StudentService {
         return ProfileMapper.toSkillList(loadCurrentDetailed().getSkills());
     }
 
-    // ---- Projects ----
     @Override
     @Transactional
-    public ProjectResponse addProject(ProjectRequest req) {
+    public ProjectResponse addProject(ProjectRequest r) {
         Student s = currentUser.currentStudent();
-        Project p = Project.builder()
-                .student(s).title(req.title()).description(req.description())
-                .link(req.link()).techStack(req.techStack()).build();
+        Project p = Project.builder().student(s).title(r.title()).description(r.description()).link(r.link())
+                .repositoryUrl(r.repositoryUrl()).techStack(r.techStack()).startDate(r.startDate()).endDate(r.endDate())
+                .build();
         return ProfileMapper.toProjectResponse(projectRepository.save(p));
     }
 
     @Override
     @Transactional
-    public ProjectResponse updateProject(Long projectId, ProjectRequest req) {
-        Project p = projectRepository.findById(projectId)
-                .orElseThrow(() -> ResourceNotFoundException.of("Project", projectId));
+    public ProjectResponse updateProject(Long id, ProjectRequest r) {
+        Project p = projectRepository.findById(id).orElseThrow(() -> ResourceNotFoundException.of("Project", id));
         assertOwnership(p.getStudent());
-        if (req.title() != null) p.setTitle(req.title());
-        if (req.description() != null) p.setDescription(req.description());
-        if (req.link() != null) p.setLink(req.link());
-        if (req.techStack() != null) p.setTechStack(req.techStack());
+        if (r.title() != null)
+            p.setTitle(r.title());
+        if (r.description() != null)
+            p.setDescription(r.description());
+        if (r.link() != null)
+            p.setLink(r.link());
+        if (r.repositoryUrl() != null)
+            p.setRepositoryUrl(r.repositoryUrl());
+        if (r.techStack() != null)
+            p.setTechStack(r.techStack());
+        if (r.startDate() != null)
+            p.setStartDate(r.startDate());
+        if (r.endDate() != null)
+            p.setEndDate(r.endDate());
         return ProfileMapper.toProjectResponse(projectRepository.save(p));
     }
 
     @Override
     @Transactional
-    public void deleteProject(Long projectId) {
-        Project p = projectRepository.findById(projectId)
-                .orElseThrow(() -> ResourceNotFoundException.of("Project", projectId));
+    public void deleteProject(Long id) {
+        Project p = projectRepository.findById(id).orElseThrow(() -> ResourceNotFoundException.of("Project", id));
         assertOwnership(p.getStudent());
         projectRepository.delete(p);
     }
@@ -123,39 +148,45 @@ public class StudentServiceImpl implements StudentService {
     @Override
     @Transactional(readOnly = true)
     public List<ProjectResponse> listMyProjects() {
-        return projectRepository.findByStudent_Id(currentUser.currentStudent().getId())
-                .stream().map(ProfileMapper::toProjectResponse).toList();
+        return projectRepository.findByStudent_Id(currentUser.currentStudent().getId()).stream()
+                .map(ProfileMapper::toProjectResponse).toList();
     }
 
-    // ---- Certifications ----
     @Override
     @Transactional
-    public CertificationResponse addCertification(CertificationRequest req) {
+    public CertificationResponse addCertification(CertificationRequest r) {
         Student s = currentUser.currentStudent();
-        Certification c = Certification.builder()
-                .student(s).name(req.name()).issuer(req.issuer())
-                .issueDate(req.issueDate()).link(req.link()).build();
+        Certification c = Certification.builder().student(s).name(r.name()).issuer(r.issuer()).issueDate(r.issueDate())
+                .expiryDate(r.expiryDate()).credentialId(r.credentialId()).link(r.link()).build();
         return ProfileMapper.toCertificationResponse(certificationRepository.save(c));
     }
 
     @Override
     @Transactional
-    public CertificationResponse updateCertification(Long certificationId, CertificationRequest req) {
-        Certification c = certificationRepository.findById(certificationId)
-                .orElseThrow(() -> ResourceNotFoundException.of("Certification", certificationId));
+    public CertificationResponse updateCertification(Long id, CertificationRequest r) {
+        Certification c = certificationRepository.findById(id)
+                .orElseThrow(() -> ResourceNotFoundException.of("Certification", id));
         assertOwnership(c.getStudent());
-        if (req.name() != null) c.setName(req.name());
-        if (req.issuer() != null) c.setIssuer(req.issuer());
-        if (req.issueDate() != null) c.setIssueDate(req.issueDate());
-        if (req.link() != null) c.setLink(req.link());
+        if (r.name() != null)
+            c.setName(r.name());
+        if (r.issuer() != null)
+            c.setIssuer(r.issuer());
+        if (r.issueDate() != null)
+            c.setIssueDate(r.issueDate());
+        if (r.expiryDate() != null)
+            c.setExpiryDate(r.expiryDate());
+        if (r.credentialId() != null)
+            c.setCredentialId(r.credentialId());
+        if (r.link() != null)
+            c.setLink(r.link());
         return ProfileMapper.toCertificationResponse(certificationRepository.save(c));
     }
 
     @Override
     @Transactional
-    public void deleteCertification(Long certificationId) {
-        Certification c = certificationRepository.findById(certificationId)
-                .orElseThrow(() -> ResourceNotFoundException.of("Certification", certificationId));
+    public void deleteCertification(Long id) {
+        Certification c = certificationRepository.findById(id)
+                .orElseThrow(() -> ResourceNotFoundException.of("Certification", id));
         assertOwnership(c.getStudent());
         certificationRepository.delete(c);
     }
@@ -163,11 +194,10 @@ public class StudentServiceImpl implements StudentService {
     @Override
     @Transactional(readOnly = true)
     public List<CertificationResponse> listMyCertifications() {
-        return certificationRepository.findByStudent_Id(currentUser.currentStudent().getId())
-                .stream().map(ProfileMapper::toCertificationResponse).toList();
+        return certificationRepository.findByStudent_Id(currentUser.currentStudent().getId()).stream()
+                .map(ProfileMapper::toCertificationResponse).toList();
     }
 
-    // ---- Portfolio (company/faculty/admin view) ----
     @Override
     @Transactional(readOnly = true)
     public PortfolioResponse getPortfolio(Long studentId) {
@@ -177,8 +207,14 @@ public class StudentServiceImpl implements StudentService {
     }
 
     private void assertOwnership(Student owner) {
-        if (owner == null || !owner.getId().equals(currentUser.currentStudent().getId())) {
+        if (owner == null || !owner.getId().equals(currentUser.currentStudent().getId()))
             throw new ForbiddenOperationException("You do not own this resource");
-        }
+    }
+
+    private String clean(String s) {
+        if (s == null)
+            return null;
+        String v = s.trim();
+        return v.isEmpty() ? null : v;
     }
 }

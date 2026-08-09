@@ -7,15 +7,19 @@ import com.ewu.matching.dto.request.StudentProfileRequest;
 import com.ewu.matching.dto.response.*;
 import com.ewu.matching.security.access.CanViewPortfolio;
 import com.ewu.matching.security.access.IsStudent;
+import com.ewu.matching.service.FileStorageService;
 import com.ewu.matching.service.StudentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @Tag(name = "Students", description = "Student profile, skills, projects, certifications, portfolio")
@@ -25,8 +29,8 @@ import java.util.List;
 public class StudentController {
 
     private final StudentService studentService;
+    private final FileStorageService fileStorageService;
 
-    // ---- Profile ----
     @IsStudent
     @Operation(summary = "Get my student profile")
     @GetMapping("/me")
@@ -34,14 +38,64 @@ public class StudentController {
         return ResponseEntity.ok(studentService.getMyProfile());
     }
 
+    /** Existing JSON endpoint remains supported. */
     @IsStudent
-    @Operation(summary = "Update my student profile")
-    @PutMapping("/me")
-    public ResponseEntity<StudentProfileResponse> updateMyProfile(@Valid @RequestBody StudentProfileRequest request) {
+    @Operation(summary = "Update my student profile using JSON")
+    @PutMapping(value = "/me", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<StudentProfileResponse> updateMyProfile(
+            @Valid @RequestBody StudentProfileRequest request) {
         return ResponseEntity.ok(studentService.updateMyProfile(request));
     }
 
-    // ---- Skills ----
+    /**
+     * Preferred frontend endpoint: update profile data and upload profile/cover/resume in one request.
+     * multipart fields:
+     * - data: application/json
+     * - profilePicture: optional image
+     * - coverPicture: optional image
+     * - resume: optional PDF/DOC/DOCX
+     */
+    @IsStudent
+    @Operation(summary = "Update my student profile with profile picture, cover picture and resume")
+    @PutMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<StudentProfileResponse> updateMyProfileWithFiles(
+            @Valid @RequestPart("data") StudentProfileRequest request,
+            @RequestPart(value = "profilePicture", required = false) MultipartFile profilePicture,
+            @RequestPart(value = "coverPicture", required = false) MultipartFile coverPicture,
+            @RequestPart(value = "resume", required = false) MultipartFile resume) throws IOException {
+
+        String profileUrl = request.profilePicture();
+        String coverUrl = request.coverPicture();
+        String resumeUrl = request.resumeUrl();
+
+        if (hasFile(profilePicture)) profileUrl = fileStorageService.saveProfileImage(profilePicture);
+        if (hasFile(coverPicture)) coverUrl = fileStorageService.saveCoverImage(coverPicture);
+        if (hasFile(resume)) resumeUrl = fileStorageService.saveResume(resume);
+
+        StudentProfileRequest merged = new StudentProfileRequest(
+                request.name(),
+                request.studentId(),
+                request.department(),
+                request.batch(),
+                request.cgpa(),
+                request.headline(),
+                request.bio(),
+                request.contactNumber(),
+                request.address(),
+                profileUrl,
+                coverUrl,
+                resumeUrl,
+                request.portfolioUrl(),
+                request.university(),
+                request.githubUrl(),
+                request.linkedinUrl(),
+                request.openToWork()
+
+        );
+
+        return ResponseEntity.ok(studentService.updateMyProfile(merged));
+    }
+
     @IsStudent
     @Operation(summary = "List my skills")
     @GetMapping("/me/skills")
@@ -63,7 +117,6 @@ public class StudentController {
         return ResponseEntity.ok(studentService.removeSkill(skillId));
     }
 
-    // ---- Projects ----
     @IsStudent
     @Operation(summary = "List my projects")
     @GetMapping("/me/projects")
@@ -94,7 +147,6 @@ public class StudentController {
         return ResponseEntity.noContent().build();
     }
 
-    // ---- Certifications ----
     @IsStudent
     @Operation(summary = "List my certifications")
     @GetMapping("/me/certifications")
@@ -125,11 +177,14 @@ public class StudentController {
         return ResponseEntity.noContent().build();
     }
 
-    // ---- Portfolio (company/faculty/admin) ----
     @CanViewPortfolio
     @Operation(summary = "View a student's full portfolio (COMPANY, FACULTY, ADMIN)")
     @GetMapping("/{id}/portfolio")
     public ResponseEntity<PortfolioResponse> getPortfolio(@PathVariable Long id) {
         return ResponseEntity.ok(studentService.getPortfolio(id));
+    }
+
+    private boolean hasFile(MultipartFile file) {
+        return file != null && !file.isEmpty();
     }
 }

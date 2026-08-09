@@ -1,16 +1,12 @@
 package com.ewu.matching.mapper;
 
-import com.ewu.matching.dto.response.ApplicantResponse;
-import com.ewu.matching.dto.response.ApplicationResponse;
-import com.ewu.matching.dto.response.BookmarkResponse;
+import com.ewu.matching.dto.response.*;
 import com.ewu.matching.entity.Application;
 import com.ewu.matching.entity.Bookmark;
 import com.ewu.matching.entity.Student;
 import com.ewu.matching.enums.OpportunityType;
 
-/** Entity -> response mapping for applications and bookmarks. */
 public final class ActivityMapper {
-
     private ActivityMapper() {}
 
     public static ApplicationResponse toApplicationResponse(Application a) {
@@ -23,25 +19,19 @@ public final class ActivityMapper {
             opportunityId = a.getResearch() != null ? a.getResearch().getId() : null;
             title = a.getResearch() != null ? a.getResearch().getTopic() : null;
         }
-        return new ApplicationResponse(
-                a.getId(), a.getTargetType(), opportunityId, title,
-                a.getStatus(), a.getMatchScore(), a.getAppliedAt()
-        );
+        return new ApplicationResponse(a.getId(), a.getTargetType(), opportunityId, title,
+                a.getStatus(), a.getMatchScore(), a.getResumeUrl(), a.getCoverLetter(), a.getApplicantNote(),
+                a.getReviewerNote(), a.getAppliedAt(), a.getUpdatedAt(), a.getReviewedAt(), a.getWithdrawnAt());
     }
 
     public static ApplicantResponse toApplicantResponse(Application a) {
         Student s = a.getStudent();
         return new ApplicantResponse(
-                a.getId(),
-                a.getStatus(),
-                a.getMatchScore(),
-                a.getAppliedAt(),
-                s.getId(),
-                s.getName(),
-                s.getStudentId(),
-                s.getDepartment(),
-                s.getCgpa()
-        );
+                a.getId(), a.getStatus(), a.getMatchScore(), a.getAppliedAt(),
+                s.getId(), s.getUser() != null ? s.getUser().getId() : null,
+                s.getName(), s.getStudentId(), s.getDepartment(), s.getCgpa(), s.getHeadline(),
+                a.getResumeUrl() != null ? a.getResumeUrl() : s.getResumeUrl(),
+                a.getCoverLetter(), a.getApplicantNote(), a.getReviewerNote());
     }
 
     public static BookmarkResponse toBookmarkResponse(Bookmark b) {

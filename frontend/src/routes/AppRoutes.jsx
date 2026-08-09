@@ -11,6 +11,14 @@ import NotFound from '../pages/shared/NotFound.jsx';
 import Forbidden from '../pages/shared/Forbidden.jsx';
 import PortfolioView from '../pages/shared/PortfolioView.jsx';
 
+// Shared LinkedIn-style pages. They are additive; the original role dashboards remain the home pages.
+import Feed from '../pages/shared/Feed.jsx';
+import Network from '../pages/shared/Network.jsx';
+import Messages from '../pages/shared/Messages.jsx';
+import Notifications from '../pages/shared/Notifications.jsx';
+import SearchResults from '../pages/shared/SearchResults.jsx';
+import PublicProfile from '../pages/shared/PublicProfile.jsx';
+
 import StudentDashboard from '../pages/student/Dashboard.jsx';
 import StudentProfile from '../pages/student/Profile.jsx';
 import BrowseInternships from '../pages/student/BrowseInternships.jsx';
@@ -59,7 +67,14 @@ export default function AppRoutes() {
           <Route path="/" element={<HomeRedirect />} />
           <Route path="/change-password" element={<ChangePassword />} />
 
-          {/* Student */}
+          {/* Shared professional/social features for every authenticated account. */}
+          <Route path="/feed" element={<Feed />} />
+          <Route path="/network" element={<Network />} />
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/search" element={<SearchResults />} />
+          <Route path="/profile/:userId" element={<PublicProfile />} />
+
           <Route element={<RoleRoute allow={['STUDENT']} />}>
             <Route path="/student/dashboard" element={<StudentDashboard />} />
             <Route path="/student/profile" element={<StudentProfile />} />
@@ -69,7 +84,6 @@ export default function AppRoutes() {
             <Route path="/student/bookmarks" element={<Bookmarks />} />
           </Route>
 
-          {/* Company */}
           <Route element={<RoleRoute allow={['COMPANY']} />}>
             <Route path="/company/dashboard" element={<CompanyDashboard />} />
             <Route path="/company/profile" element={<CompanyProfile />} />
@@ -79,7 +93,6 @@ export default function AppRoutes() {
             <Route path="/company/internships/:id/applicants" element={<InternshipApplicants />} />
           </Route>
 
-          {/* Faculty */}
           <Route element={<RoleRoute allow={['FACULTY']} />}>
             <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
             <Route path="/faculty/profile" element={<FacultyProfile />} />
@@ -89,12 +102,10 @@ export default function AppRoutes() {
             <Route path="/faculty/research/:id/applicants" element={<ResearchApplicants />} />
           </Route>
 
-          {/* Shared portfolio view (company/faculty/admin) */}
           <Route element={<RoleRoute allow={['COMPANY', 'FACULTY', 'ADMIN']} />}>
             <Route path="/portfolio/:id" element={<PortfolioView />} />
           </Route>
 
-          {/* Admin */}
           <Route element={<RoleRoute allow={['ADMIN']} />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/profile" element={<AdminProfile />} />

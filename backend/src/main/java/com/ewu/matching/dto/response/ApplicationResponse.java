@@ -2,10 +2,8 @@ package com.ewu.matching.dto.response;
 
 import com.ewu.matching.enums.ApplicationStatus;
 import com.ewu.matching.enums.OpportunityType;
-
 import java.time.LocalDateTime;
 
-/** Student-facing view of their own application. */
 public record ApplicationResponse(
         Long id,
         OpportunityType targetType,
@@ -13,5 +11,12 @@ public record ApplicationResponse(
         String opportunityTitle,
         ApplicationStatus status,
         Double matchScore,
-        LocalDateTime appliedAt
+        String resumeUrl,
+        String coverLetter,
+        String applicantNote,
+        String reviewerNote,
+        LocalDateTime appliedAt,
+        LocalDateTime updatedAt,
+        LocalDateTime reviewedAt,
+        LocalDateTime withdrawnAt
 ) {}

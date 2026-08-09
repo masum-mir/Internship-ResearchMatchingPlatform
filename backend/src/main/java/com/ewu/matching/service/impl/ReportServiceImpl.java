@@ -49,7 +49,8 @@ public class ReportServiceImpl implements ReportService {
 
     private String resolveMostAppliedInternship() {
         List<Object[]> rows = applicationRepository.findMostAppliedInternships(PageRequest.of(0, 1));
-        if (rows.isEmpty()) return "N/A";
+        if (rows.isEmpty())
+            return "N/A";
         Long internshipId = (Long) rows.get(0)[0];
         return internshipRepository.findById(internshipId)
                 .map(i -> i.getTitle()).orElse("N/A");
@@ -57,7 +58,8 @@ public class ReportServiceImpl implements ReportService {
 
     private String resolveMostPopularSkill() {
         List<Object[]> rows = skillRepository.findMostPopularSkills(PageRequest.of(0, 1));
-        if (rows.isEmpty()) return "N/A";
+        if (rows.isEmpty())
+            return "N/A";
         return (String) rows.get(0)[0];
     }
 

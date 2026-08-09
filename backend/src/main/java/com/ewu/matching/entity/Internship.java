@@ -1,6 +1,8 @@
 package com.ewu.matching.entity;
 
+import com.ewu.matching.enums.EmploymentType;
 import com.ewu.matching.enums.PostStatus;
+import com.ewu.matching.enums.WorkMode;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,16 +32,45 @@ public class Internship {
     @Column(nullable = false)
     private String title;
 
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String description;
+
+    @Column(columnDefinition = "TEXT")
+    private String responsibilities;
+
+    @Column(columnDefinition = "TEXT")
+    private String requirements;
+
+    @Column(columnDefinition = "TEXT")
+    private String benefits;
 
     @Column(name = "required_cgpa", precision = 4, scale = 2)
     private BigDecimal requiredCgpa;
 
     private String location;
 
-    private LocalDate deadline;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "work_mode", length = 20)
+    private WorkMode workMode;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "employment_type", length = 30)
+    @Builder.Default
+    private EmploymentType employmentType = EmploymentType.INTERNSHIP;
+
+    @Column(name = "salary_min", precision = 12, scale = 2)
+    private BigDecimal salaryMin;
+
+    @Column(name = "salary_max", precision = 12, scale = 2)
+    private BigDecimal salaryMax;
+
+    @Column(name = "salary_currency", length = 10)
+    private String salaryCurrency;
+
+    @Column(name = "experience_level", length = 100)
+    private String experienceLevel;
+
+    private LocalDate deadline;
     private Integer vacancies;
 
     @Enumerated(EnumType.STRING)
@@ -49,6 +80,9 @@ public class Internship {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -60,19 +94,22 @@ public class Internship {
     private Set<Skill> requiredSkills = new HashSet<>();
 
     @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(
-            name = "internship_departments",
-            joinColumns = @JoinColumn(name = "internship_id")
-    )
+    @CollectionTable(name = "internship_departments", joinColumns = @JoinColumn(name = "internship_id"))
     @Column(name = "department")
     @Builder.Default
     private Set<String> targetDepartments = new HashSet<>();
 
     @PrePersist
     void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        if (this.status == null) {
-            this.status = PostStatus.ACTIVE;
-        }
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+        if (this.status == null) this.status = PostStatus.ACTIVE;
+        if (this.employmentType == null) this.employmentType = EmploymentType.INTERNSHIP;
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }

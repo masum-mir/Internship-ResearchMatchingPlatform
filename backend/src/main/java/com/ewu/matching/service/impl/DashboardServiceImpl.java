@@ -18,6 +18,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final InternshipRepository internshipRepository;
     private final ResearchOpportunityRepository researchRepository;
     private final UserRepository userRepository;
+    private final PostRepository postRepository;
     private final CurrentUserProvider currentUser;
 
     @Override
@@ -53,7 +54,8 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     @Transactional(readOnly = true)
     public AdminDashboardResponse adminDashboard() {
-        long totalPosts = internshipRepository.count() + researchRepository.count();
+        long totalPosts = internshipRepository.count() + researchRepository.count()
+                + postRepository.countByDeletedFalse();
         return new AdminDashboardResponse(
                 userRepository.count(), totalPosts, applicationRepository.count());
     }

@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 @Service
@@ -81,6 +82,8 @@ public class AuthServiceImpl implements AuthService {
         }
         User user = userRepository.findByEmail(req.email())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + req.email()));
+        user.setLastLoginAt(LocalDateTime.now());
+        userRepository.save(user);
         return issueTokens(user);
     }
 

@@ -1,59 +1,98 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { bookmarkApi } from '../../api/bookmarkApi.js';
-import { applicationApi } from '../../api/applicationApi.js';
+import { internshipApi } from '../../api/internshipApi.js';
+import { researchApi } from '../../api/researchApi.js';
 import { apiMessage } from '../../api/axiosClient.js';
+import { enumLabel, formatDate } from '../../utils/format.js';
+import PageTitle from '../../components/PageTitle.jsx';
 import Loader from '../../components/Loader.jsx';
-import Notice from '../../components/Toast.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
+import OpportunityDetailModal from '../../components/OpportunityDetailModal.jsx';
+import ApplyModal from '../../components/ApplyModal.jsx';
 
 export default function Bookmarks() {
   const [items, setItems] = useState([]);
+  const [detail, setDetail] = useState(null);
+  const [apply, setApply] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [notice, setNotice] = useState({ type: '', message: '' });
+  const [notice, setNotice] = useState('');
 
-  const load = () => {
-    setLoading(true);
-    bookmarkApi.mine().then(setItems)
-      .catch((e) => setNotice({ type: 'danger', message: apiMessage(e) }))
-      .finally(() => setLoading(false));
+  const load = useCallback(async () => {
+    try {
+      setItems(await bookmarkApi.mine());
+    } catch (e) {
+      setNotice(apiMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const open = async (item) => {
+    try {
+      const opportunity = item.targetType === 'INTERNSHIP'
+        ? await internshipApi.getById(item.opportunityId)
+        : await researchApi.getById(item.opportunityId);
+      setDetail({ type: item.targetType, opportunity });
+    } catch (e) {
+      setNotice(apiMessage(e));
+    }
   };
-  useEffect(() => { load(); }, []);
 
-  const remove = async (id) => { try { await bookmarkApi.remove(id); load(); } catch (e) { setNotice({ type: 'danger', message: apiMessage(e) }); } };
-  const apply = async (b) => {
-    try { await applicationApi.apply({ targetType: b.targetType, targetId: b.opportunityId });
-      setNotice({ type: 'success', message: 'Application submitted.' }); }
-    catch (e) { setNotice({ type: 'danger', message: apiMessage(e) }); }
+  const remove = async (id) => {
+    try {
+      await bookmarkApi.remove(id);
+      setItems((old) => old.filter((x) => x.id !== id));
+    } catch (e) {
+      setNotice(apiMessage(e));
+    }
   };
-
-  if (loading) return <Loader />;
 
   return (
-    <div>
-      <h4 className="mb-3">Saved for later</h4>
-      <Notice type={notice.type} message={notice.message} onClose={() => setNotice({ type: '', message: '' })} />
-      {items.length === 0 ? (
-        <EmptyState icon="bi-bookmark-heart" title="No bookmarks yet" message="Save opportunities to revisit them here." />
+    <div style={{ maxWidth: 900 }}>
+      <PageTitle title="Saved Opportunities" subtitle="Internships and research posts you saved for later." />
+      {notice && <div className="alert alert-danger">{notice}</div>}
+
+      {loading ? <Loader /> : items.length === 0 ? (
+        <div className="social-card"><EmptyState icon="bi-bookmark-heart" title="No saved opportunities" /></div>
       ) : (
-        <div className="row g-3">
-          {items.map((b) => (
-            <div className="col-md-6" key={b.id}>
-              <div className="card border-0 shadow-sm h-100">
-                <div className="card-body d-flex justify-content-between align-items-center">
-                  <div>
-                    <span className="badge bg-light text-dark border mb-1">{b.targetType}</span>
-                    <h6 className="mb-0">{b.opportunityTitle}</h6>
-                  </div>
-                  <div className="d-flex gap-2">
-                    <button className="btn btn-sm btn-brand" onClick={() => apply(b)}>Apply</button>
-                    <button className="btn btn-sm btn-outline-danger" onClick={() => remove(b.id)}><i className="bi bi-trash" /></button>
-                  </div>
-                </div>
+        <div className="saved-opportunity-list">
+          {items.map((item) => (
+            <div className="social-card saved-opportunity-row" key={item.id}>
+              <span className="saved-opportunity-icon">
+                <i className={`bi ${item.targetType === 'RESEARCH' ? 'bi-journal-text' : 'bi-briefcase-fill'}`} />
+              </span>
+              <div className="flex-grow-1">
+                <div className="small text-muted">{enumLabel(item.targetType)}</div>
+                <h6 className="mb-1">{item.opportunityTitle}</h6>
+                <div className="small text-muted">Saved {formatDate(item.createdAt)}</div>
               </div>
+              <button className="btn btn-outline-primary btn-sm" onClick={() => open(item)}>View</button>
+              <button className="icon-button text-danger" onClick={() => remove(item.id)}><i className="bi bi-trash" /></button>
             </div>
           ))}
         </div>
       )}
+
+      <OpportunityDetailModal
+        show={Boolean(detail)}
+        type={detail?.type}
+        opportunity={detail?.opportunity}
+        onClose={() => setDetail(null)}
+        onApply={() => {
+          setApply(detail);
+          setDetail(null);
+        }}
+      />
+
+      <ApplyModal
+        show={Boolean(apply)}
+        type={apply?.type}
+        opportunity={apply?.opportunity}
+        onClose={() => setApply(null)}
+        onApplied={() => setNotice('Application submitted successfully.')}
+      />
     </div>
   );
 }

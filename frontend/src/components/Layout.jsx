@@ -10,9 +10,10 @@ export default function Layout() {
 
   return (
     <div className="app-shell">
-      <Navbar onToggleSidebar={() => setOpen((o) => !o)} />
-      <div className="app-body d-flex flex-column flex-md-row">
-        <Sidebar role={role} open={open} />
+      <Navbar onToggleSidebar={() => setOpen((value) => !value)} />
+      <div className="app-body d-flex">
+        {open && <div className="sidebar-mobile-backdrop d-md-none" onClick={() => setOpen(false)} />}
+        <Sidebar role={role} open={open} onNavigate={() => setOpen(false)} />
         <main className="app-content">
           <Outlet />
         </main>

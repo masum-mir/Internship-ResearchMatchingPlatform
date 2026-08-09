@@ -1,0 +1,24 @@
+package com.ewu.matching.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "saved_social_posts", uniqueConstraints = @UniqueConstraint(
+        name = "uk_saved_social_post", columnNames = {"user_id", "post_id"}))
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class SavedPost {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+    @PrePersist void onCreate() { createdAt = LocalDateTime.now(); }
+}

@@ -10,3 +10,5 @@ export function SkillChips({ skills = [], missing = false }) {
     </span>
   );
 }
+
+export default SkillChips;
