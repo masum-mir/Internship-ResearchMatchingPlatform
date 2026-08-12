@@ -26,6 +26,7 @@ public class ProfessionalProfileServiceImpl implements ProfessionalProfileServic
         private final ConnectionRepository connectionRepository;
         private final CurrentUserProvider currentUser;
         private final ProfileLookupService profileLookup;
+        private final UserVisibilityService userVisibility;
 
         // @Override @Transactional(readOnly=true)
         // public PublicProfileResponse publicProfile(Long userId){User
@@ -55,6 +56,7 @@ public class ProfessionalProfileServiceImpl implements ProfessionalProfileServic
                 if (user.isBlocked() || !user.isEnabled()) {
                         throw ResourceNotFoundException.of("User", userId);
                 }
+                userVisibility.requirePublicUser(user);
 
                 // ================= COMMON =================
                 String role = null;
@@ -296,14 +298,16 @@ public class ProfessionalProfileServiceImpl implements ProfessionalProfileServic
         @Override
         @Transactional(readOnly = true)
         public List<EducationResponse> education(Long userId) {
-                userRepository.findById(userId).orElseThrow(() -> ResourceNotFoundException.of("User", userId));
+                User user = userRepository.findById(userId).orElseThrow(() -> ResourceNotFoundException.of("User", userId));
+                userVisibility.requirePublicUser(user);
                 return educationRepository.findByUser_IdOrderByStartDateDesc(userId).stream().map(this::map).toList();
         }
 
         @Override
         @Transactional(readOnly = true)
         public List<ExperienceResponse> experience(Long userId) {
-                userRepository.findById(userId).orElseThrow(() -> ResourceNotFoundException.of("User", userId));
+                User user = userRepository.findById(userId).orElseThrow(() -> ResourceNotFoundException.of("User", userId));
+                userVisibility.requirePublicUser(user);
                 return experienceRepository.findByUser_IdOrderByStartDateDesc(userId).stream().map(this::map).toList();
         }
 

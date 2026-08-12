@@ -1,0 +1,27 @@
+# Java / Maven
+backend/target/
+.m2/
+
+# Node / React
+frontend/node_modules/
+frontend/dist/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+
+# Generated uploads
+backend/uploads/
+
+# OS
+.DS_Store
+Thumbs.db

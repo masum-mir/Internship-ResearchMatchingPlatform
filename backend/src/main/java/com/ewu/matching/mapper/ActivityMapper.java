@@ -21,7 +21,7 @@ public final class ActivityMapper {
         }
         return new ApplicationResponse(a.getId(), a.getTargetType(), opportunityId, title,
                 a.getStatus(), a.getMatchScore(), a.getResumeUrl(), a.getCoverLetter(), a.getApplicantNote(),
-                a.getReviewerNote(), a.getAppliedAt(), a.getUpdatedAt(), a.getReviewedAt(), a.getWithdrawnAt());
+                a.getReviewerNote(), a.getWithdrawalReason(), a.getAppliedAt(), a.getUpdatedAt(), a.getReviewedAt(), a.getWithdrawnAt());
     }
 
     public static ApplicantResponse toApplicantResponse(Application a) {

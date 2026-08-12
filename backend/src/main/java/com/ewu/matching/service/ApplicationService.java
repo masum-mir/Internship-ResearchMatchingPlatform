@@ -10,7 +10,7 @@ import java.util.List;
 public interface ApplicationService {
     ApplicationResponse apply(ApplicationRequest request);
 
-    void withdraw(Long applicationId);
+    void withdraw(Long applicationId, String reason);
 
     List<ApplicationResponse> myApplications();
 

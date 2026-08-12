@@ -42,6 +42,7 @@ import AdminDashboard from '../pages/admin/Dashboard.jsx';
 import AdminProfile from '../pages/admin/Profile.jsx';
 import ManageUsers from '../pages/admin/ManageUsers.jsx';
 import Reports from '../pages/admin/Reports.jsx';
+import ContentReports from '../pages/admin/ContentReports.jsx';
 
 function HomeRedirect() {
   const { isAuthenticated, role } = useAuth();
@@ -70,10 +71,15 @@ export default function AppRoutes() {
           {/* Shared professional/social features for every authenticated account. */}
           <Route path="/feed" element={<Feed />} />
           <Route path="/network" element={<Network />} />
-          <Route path="/messages" element={<Messages />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/search" element={<SearchResults />} />
           <Route path="/profile/:userId" element={<PublicProfile />} />
+
+          {/* Direct messaging is off-limits for admins — they review flagged
+              content read-only from Reported Content instead of DM'ing users. */}
+          <Route element={<RoleRoute allow={['STUDENT', 'COMPANY', 'FACULTY']} />}>
+            <Route path="/messages" element={<Messages />} />
+          </Route>
 
           <Route element={<RoleRoute allow={['STUDENT']} />}>
             <Route path="/student/dashboard" element={<StudentDashboard />} />
@@ -111,6 +117,7 @@ export default function AppRoutes() {
             <Route path="/admin/profile" element={<AdminProfile />} />
             <Route path="/admin/users" element={<ManageUsers />} />
             <Route path="/admin/reports" element={<Reports />} />
+            <Route path="/admin/content-reports" element={<ContentReports />} />
           </Route>
         </Route>
       </Route>

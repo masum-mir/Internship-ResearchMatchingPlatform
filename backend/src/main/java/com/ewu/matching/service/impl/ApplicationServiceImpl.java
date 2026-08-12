@@ -77,16 +77,36 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     @Transactional
-    public void withdraw(Long id) {
+    public void withdraw(Long id, String reason) {
         Application a = applicationRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Application", id));
         if (!a.getStudent().getId().equals(currentUser.currentStudent().getId()))
             throw new ForbiddenOperationException("You can only withdraw your own application");
-        if (a.getStatus() == ApplicationStatus.ACCEPTED)
-            throw new BadRequestException("Accepted applications cannot be withdrawn here");
+        boolean wasAccepted = a.getStatus() == ApplicationStatus.ACCEPTED;
+        String cleanReason = clean(reason);
+        if (wasAccepted && cleanReason == null)
+            throw new BadRequestException("Please explain why you're withdrawing after accepting this offer");
         a.setStatus(ApplicationStatus.WITHDRAWN);
         a.setWithdrawnAt(LocalDateTime.now());
+        if (cleanReason != null)
+            a.setWithdrawalReason(cleanReason);
         applicationRepository.save(a);
+
+        if (wasAccepted) {
+            User actor;
+            String title;
+            if (a.getTargetType() == OpportunityType.INTERNSHIP) {
+                actor = a.getInternship().getCompany().getUser();
+                title = a.getInternship().getTitle();
+            } else {
+                actor = a.getResearch().getFaculty().getUser();
+                title = a.getResearch().getTopic();
+            }
+            notificationService.create(actor, a.getStudent().getUser(), NotificationType.APPLICATION_STATUS_CHANGED,
+                    profileLookup.displayName(a.getStudent().getUser()) + " withdrew from \"" + title
+                            + "\" after accepting. Reason: " + cleanReason,
+                    "APPLICATION", a.getId());
+        }
     }
 
     @Override

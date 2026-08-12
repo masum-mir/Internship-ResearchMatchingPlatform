@@ -1,5 +1,5 @@
 import { Component, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { dashboardApi } from '../../api/dashboardApi.js';
 import { applicationApi } from '../../api/applicationApi.js';
 import { internshipApi } from '../../api/internshipApi.js';
@@ -11,6 +11,7 @@ import Loader from '../../components/Loader.jsx';
 import Notice from '../../components/Toast.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
 import MatchScoreBadge from '../../components/MatchScoreBadge.jsx';
+import OpportunityDetailModal from '../../components/OpportunityDetailModal.jsx';
 import BrowseInternships from '../student/BrowseInternships.jsx';
 import BrowseResearch from '../student/BrowseResearch.jsx';
 
@@ -99,6 +100,7 @@ function deadlineTone(days) {
 }
 
 export default function StudentDashboard() {
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [view, setView] = useState('overview'); // overview | internships | research
@@ -113,6 +115,7 @@ export default function StudentDashboard() {
   const [matchesError, setMatchesError] = useState('');
 
   const [notice, setNotice] = useState({ type: '', message: '' });
+  const [detailItem, setDetailItem] = useState(null); // { type, opportunity }
 
   useEffect(() => {
     dashboardApi.student().then(setData).catch((e) => setError(apiMessage(e)));
@@ -177,6 +180,16 @@ export default function StudentDashboard() {
       .slice(0, 5);
   }, [matchedInternships]);
 
+  // Applications already submitted, so we don't offer "Apply" again from the
+  // recommended/deadline detail popup for something the student already applied to.
+  const appliedIds = useMemo(() => {
+    const ids = new Set();
+    applications
+      .filter((a) => a.status !== 'WITHDRAWN')
+      .forEach((a) => ids.add(`${a.targetType}-${a.opportunityId}`));
+    return ids;
+  }, [applications]);
+
   const apply = async (type, id) => {
     try {
       await applicationApi.apply({ targetType: type, targetId: id });
@@ -190,6 +203,17 @@ export default function StudentDashboard() {
     try {
       await bookmarkApi.add({ targetType: type, targetId: id });
       setNotice({ type: 'success', message: 'Bookmarked.' });
+    } catch (e) {
+      setNotice({ type: 'danger', message: apiMessage(e) });
+    }
+  };
+
+  const openDetail = async (type, id) => {
+    try {
+      const opportunity = type === 'RESEARCH'
+        ? await researchApi.getById(id)
+        : await internshipApi.getById(id);
+      setDetailItem({ type, opportunity });
     } catch (e) {
       setNotice({ type: 'danger', message: apiMessage(e) });
     }
@@ -222,24 +246,24 @@ export default function StudentDashboard() {
           />
 
           <div className="row g-3 mb-4">
-            <div className="col-sm-6 col-lg-3"><StatCard label="Applications" value={data.totalApplications} icon="bi-file-earmark-text" /></div>
-            <div className="col-sm-6 col-lg-3"><StatCard label="Accepted" value={data.acceptedApplications} icon="bi-check-circle" tone="success" /></div>
-            <div className="col-sm-6 col-lg-3"><StatCard label="Rejected" value={data.rejectedApplications} icon="bi-x-circle" tone="danger" /></div>
-            <div className="col-sm-6 col-lg-3"><StatCard label="Open Opportunities" value={data.activeOpportunities} icon="bi-stars" /></div>
+            <div className="col-12 col-sm-6 col-lg-3"><StatCard label="Applications" value={data.totalApplications} icon="bi-file-earmark-text" onClick={() => navigate('/student/applications')} /></div>
+            <div className="col-12 col-sm-6 col-lg-3"><StatCard label="Accepted" value={data.acceptedApplications} icon="bi-check-circle" tone="success" onClick={() => navigate('/student/applications', { state: { filter: 'ACCEPTED' } })} /></div>
+            <div className="col-12 col-sm-6 col-lg-3"><StatCard label="Rejected" value={data.rejectedApplications} icon="bi-x-circle" tone="danger" onClick={() => navigate('/student/applications', { state: { filter: 'REJECTED' } })} /></div>
+            <div className="col-12 col-sm-6 col-lg-3"><StatCard label="Open Opportunities" value={data.activeOpportunities} icon="bi-stars" onClick={() => setView('internships')} /></div>
           </div>
 
-          <div className="d-flex gap-2 flex-wrap mb-4">
-            <button className="btn btn-brand" onClick={() => setView('internships')}>
+          <div className="dashboard-actions d-flex gap-2 flex-wrap mb-4">
+            <button className="dashboard-action btn" onClick={() => setView('internships')}>
               <i className="bi bi-briefcase me-1" /> Find internships
             </button>
-            <button className="btn btn-outline-secondary" onClick={() => setView('research')}>
+            <button className="dashboard-action btn" onClick={() => setView('research')}>
               <i className="bi bi-journal-text me-1" /> Find research
             </button> 
           </div>
 
           <div className="row g-3 mb-4">
             {/* Recommended matches */}
-            <div className="col-lg-7">
+            <div className="col-12 col-lg-7">
               <div className="card border-0 shadow-sm h-100">
                 <div className="card-body">
                   <h5 className="card-title mb-3">
@@ -261,7 +285,16 @@ export default function StudentDashboard() {
                       {recommended.map((item) => (
                         <div
                           key={`${item.type}-${item.id}`}
-                          className="d-flex justify-content-between align-items-start border rounded p-2"
+                          className="d-flex justify-content-between align-items-start border rounded p-2 dashboard-row-clickable"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => openDetail(item.type, item.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              openDetail(item.type, item.id);
+                            }
+                          }}
                         >
                           <div className="me-2">
                             <div className="d-flex align-items-center gap-2">
@@ -274,15 +307,21 @@ export default function StudentDashboard() {
                             </div>
                           </div>
                           <div className="d-flex gap-2 flex-shrink-0">
-                            <button
-                              className="btn btn-sm btn-brand"
-                              onClick={() => apply(item.type, item.id)}
-                            >
-                              Apply
-                            </button>
+                            {appliedIds.has(`${item.type}-${item.id}`) ? (
+                              <button className="btn btn-sm btn-outline-success" disabled onClick={(e) => e.stopPropagation()}>
+                                <i className="bi bi-check2-circle me-1" /> Applied
+                              </button>
+                            ) : (
+                              <button
+                                className="btn btn-sm btn-brand"
+                                onClick={(e) => { e.stopPropagation(); apply(item.type, item.id); }}
+                              >
+                                Apply
+                              </button>
+                            )}
                             <button
                               className="btn btn-sm btn-outline-secondary"
-                              onClick={() => bookmark(item.type, item.id)}
+                              onClick={(e) => { e.stopPropagation(); bookmark(item.type, item.id); }}
                             >
                               <i className="bi bi-bookmark" />
                             </button>
@@ -296,7 +335,7 @@ export default function StudentDashboard() {
             </div>
 
             {/* Upcoming deadlines */}
-            <div className="col-lg-5">
+            <div className="col-12 col-lg-5">
               <div className="card border-0 shadow-sm h-100">
                 <div className="card-body">
                   <h5 className="card-title mb-3">
@@ -316,7 +355,16 @@ export default function StudentDashboard() {
                       {upcomingDeadlines.map((item) => (
                         <div
                           key={item.id}
-                          className="list-group-item d-flex justify-content-between align-items-center px-0"
+                          className="list-group-item d-flex justify-content-between align-items-center px-0 dashboard-row-clickable"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => openDetail('INTERNSHIP', item.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              openDetail('INTERNSHIP', item.id);
+                            }
+                          }}
                         >
                           <div>
                             <div className="fw-semibold">{item.title}</div>
@@ -353,7 +401,16 @@ export default function StudentDashboard() {
                   {applications.map((app) => (
                     <div
                       key={app.id}
-                      className="list-group-item d-flex justify-content-between align-items-center px-0"
+                      className="list-group-item d-flex justify-content-between align-items-center px-0 dashboard-row-clickable"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => navigate('/student/applications')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          navigate('/student/applications');
+                        }
+                      }}
                     >
                       <div>
                         <div className="fw-semibold">{getApplicationTitle(app)}</div>
@@ -371,6 +428,18 @@ export default function StudentDashboard() {
           </div>
         </>
       )}
+
+      <OpportunityDetailModal
+        show={Boolean(detailItem)}
+        type={detailItem?.type}
+        opportunity={detailItem?.opportunity}
+        applied={detailItem ? appliedIds.has(`${detailItem.type}-${detailItem.opportunity?.id}`) : false}
+        onClose={() => setDetailItem(null)}
+        onApply={() => {
+          apply(detailItem.type, detailItem.opportunity.id);
+          setDetailItem(null);
+        }}
+      />
 
       {view === 'internships' && (
         <ViewErrorBoundary key="internships">

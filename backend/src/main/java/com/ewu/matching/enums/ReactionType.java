@@ -5,5 +5,6 @@ public enum ReactionType {
     CELEBRATE,
     SUPPORT,
     LOVE,
-    INSIGHTFUL
+    INSIGHTFUL,
+    CURIOUS
 }

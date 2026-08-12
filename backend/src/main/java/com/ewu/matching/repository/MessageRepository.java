@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface MessageRepository extends JpaRepository<Message, Long> {
     List<Message> findByConversation_IdOrderBySentAtAsc(Long conversationId);
+
+    void deleteByConversation_Id(Long conversationId);
 }

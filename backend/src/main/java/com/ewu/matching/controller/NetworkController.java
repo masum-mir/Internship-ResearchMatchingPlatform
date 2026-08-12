@@ -8,6 +8,7 @@ public class NetworkController {private final NetworkService service;
  @DeleteMapping("/connections/{id}") public ResponseEntity<Void> remove(@PathVariable Long id){service.removeConnection(id);return ResponseEntity.noContent().build();}
  @GetMapping("/connections") public ResponseEntity<List<ConnectionResponse>> connections(){return ResponseEntity.ok(service.connections());}
  @GetMapping("/connections/pending") public ResponseEntity<List<ConnectionResponse>> pending(){return ResponseEntity.ok(service.pendingReceived());}
+ @GetMapping("/connections/pending-sent") public ResponseEntity<List<ConnectionResponse>> pendingSent(){return ResponseEntity.ok(service.pendingSent());}
  @PutMapping("/block/{userId}") public ResponseEntity<Void> block(@PathVariable Long userId){service.block(userId);return ResponseEntity.noContent().build();}
  @DeleteMapping("/block/{userId}") public ResponseEntity<Void> unblock(@PathVariable Long userId){service.unblock(userId);return ResponseEntity.noContent().build();}
  @PostMapping("/follow") public ResponseEntity<FollowResponse> follow(@Valid @RequestBody FollowRequest r){return ResponseEntity.status(HttpStatus.CREATED).body(service.follow(r.userId()));}

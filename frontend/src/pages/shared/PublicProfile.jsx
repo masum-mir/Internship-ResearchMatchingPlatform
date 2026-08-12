@@ -15,7 +15,7 @@
 // export default function PublicProfile() {
 //   const { userId } = useParams();
 //   const navigate = useNavigate();
-//   const { user } = useAuth();
+//   const { user, role: viewerRole } = useAuth();
 //   const [data, setData] = useState(null);
 //   const [notice, setNotice] = useState({ type: '', message: '' });
 //   const [busy, setBusy] = useState(false);
@@ -173,15 +173,26 @@ import ProfessionalSections from '../../components/ProfessionalSections.jsx';
 import SkillChips from '../../components/SkillChips.jsx';
 import Loader from '../../components/Loader.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
+import ReportModal from '../../components/ReportModal.jsx';
+import Modal from '../../components/Modal.jsx';
+import { reportCategoriesFor } from '../../utils/reportCategories.js';
 
 export default function PublicProfile() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, role: viewerRole } = useAuth();
 
   const [data, setData] = useState(null);
   const [notice, setNotice] = useState({ type: '', message: '' });
   const [busy, setBusy] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [connected, setConnected] = useState(false);
+  const [connectionId, setConnectionId] = useState(null);
+  const [pendingSent, setPendingSent] = useState(false);
+  const [incomingRequestId, setIncomingRequestId] = useState(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [responding, setResponding] = useState(false);
 
   useEffect(() => {
     setData(null);
@@ -196,6 +207,33 @@ export default function PublicProfile() {
           message: apiMessage(e)
         })
       );
+
+    const uid = Number(userId);
+
+    networkApi.connections()
+      .then((list) => {
+        const match = (list || []).find(
+          (c) => Number(c.requesterId) === uid || Number(c.addresseeId) === uid
+        );
+        setConnected(Boolean(match));
+        setConnectionId(match ? match.id : null);
+      })
+      .catch(() => { setConnected(false); setConnectionId(null); });
+
+    networkApi.pendingSent()
+      .then((list) => setPendingSent((list || []).some((r) => Number(r.addresseeId) === uid)))
+      .catch(() => setPendingSent(false));
+
+    networkApi.pending()
+      .then((list) => {
+        const match = (list || []).find((r) => Number(r.requesterId) === uid);
+        setIncomingRequestId(match ? match.id : null);
+      })
+      .catch(() => setIncomingRequestId(null));
+
+    networkApi.following()
+      .then((list) => setIsFollowing((list || []).some((f) => Number(f.followingId) === uid)))
+      .catch(() => setIsFollowing(false));
   }, [userId]);
 
   const p = data?.profile || data || {};
@@ -214,67 +252,177 @@ export default function PublicProfile() {
   const projects = data?.projects ?? p?.projects ?? [];
   const certifications = data?.certifications ?? p?.certifications ?? [];
 
+  const reload = async () => {
+    const uid = Number(userId);
+    try {
+      const list = await networkApi.connections();
+      const match = (list || []).find((c) => Number(c.requesterId) === uid || Number(c.addresseeId) === uid);
+      setConnected(Boolean(match));
+      setConnectionId(match ? match.id : null);
+    } catch { /* ignore */ }
+    try {
+      const sent = await networkApi.pendingSent();
+      setPendingSent((sent || []).some((r) => Number(r.addresseeId) === uid));
+    } catch { /* ignore */ }
+    try {
+      const received = await networkApi.pending();
+      const match = (received || []).find((r) => Number(r.requesterId) === uid);
+      setIncomingRequestId(match ? match.id : null);
+    } catch { /* ignore */ }
+    try {
+      const list = await networkApi.following();
+      setIsFollowing((list || []).some((f) => Number(f.followingId) === uid));
+    } catch { /* ignore */ }
+  };
+
+  const confirmPending = async () => {
+    if (!confirmAction) return;
+    const { kind } = confirmAction;
+    setConfirmAction(null);
+    setBusy(true);
+    try {
+      if (kind === 'disconnect') {
+        await networkApi.removeConnection(connectionId);
+        setNotice({ type: 'success', message: `Removed connection with ${p.name || 'this user'}.` });
+      } else if (kind === 'unfollow') {
+        await networkApi.unfollow(p.userId);
+        setNotice({ type: 'success', message: `Unfollowed ${p.name || 'this user'}.` });
+      }
+      await reload();
+    } catch (e) {
+      setNotice({ type: 'danger', message: apiMessage(e) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const respondToRequest = async (accept) => {
+    if (!incomingRequestId) return;
+    setResponding(true);
+    try {
+      if (accept) {
+        await networkApi.accept(incomingRequestId);
+        setNotice({ type: 'success', message: `You're now connected with ${p.name || 'this user'}.` });
+      } else {
+        await networkApi.reject(incomingRequestId);
+        setNotice({ type: 'success', message: 'Request declined.' });
+      }
+      setConfirmAction(null);
+      await reload();
+    } catch (e) {
+      setNotice({ type: 'danger', message: apiMessage(e) });
+    } finally {
+      setResponding(false);
+    }
+  };
+
   const actions = useMemo(() => {
-    if (mine || !p?.userId) return null;
+    // Admins land here only to review a reported user, not to socialize with
+    // them — no Connect/Follow/Message/Block actions for that account.
+    if (mine || !p?.userId || viewerRole === 'ADMIN') return null;
 
     return (
       <div className="d-flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="btn btn-brand btn-sm"
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            try {
-              await networkApi.connect(p.userId);
-              setNotice({
-                type: 'success',
-                message: 'Connection request sent.'
-              });
-            } catch (e) {
-              setNotice({
-                type: 'danger',
-                message: apiMessage(e)
-              });
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          <i className="bi bi-person-plus me-1" />
-          Connect
-        </button>
+        {connected ? (
+          <button
+            type="button"
+            className="btn btn-outline-success btn-sm"
+            disabled={busy}
+            onClick={() => setConfirmAction({ kind: 'disconnect' })}
+          >
+            <i className="bi bi-check2 me-1" />
+            Connected
+          </button>
+        ) : incomingRequestId ? (
+          <button
+            type="button"
+            className="btn btn-brand btn-sm"
+            disabled={busy}
+            onClick={() => setConfirmAction({ kind: 'respond' })}
+          >
+            <i className="bi bi-person-plus me-1" />
+            Respond to request
+          </button>
+        ) : pendingSent ? (
+          <button type="button" className="btn btn-outline-secondary btn-sm" disabled>
+            <i className="bi bi-hourglass-split me-1" />
+            Pending
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-brand btn-sm"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await networkApi.connect(p.userId);
+                setNotice({
+                  type: 'success',
+                  message: 'Connection request sent.'
+                });
+                await reload();
+              } catch (e) {
+                setNotice({
+                  type: 'danger',
+                  message: apiMessage(e)
+                });
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <i className="bi bi-person-plus me-1" />
+            Connect
+          </button>
+        )}
 
-        <button
-          type="button"
-          className="btn btn-outline-primary btn-sm"
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            try {
-              await networkApi.follow(p.userId);
-              setNotice({
-                type: 'success',
-                message: `Following ${p.name || 'user'}.`
-              });
-            } catch (e) {
-              setNotice({
-                type: 'danger',
-                message: apiMessage(e)
-              });
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          <i className="bi bi-person-check me-1" />
-          Follow
-        </button>
+        {isFollowing ? (
+          <button
+            type="button"
+            className="btn btn-outline-success btn-sm"
+            disabled={busy}
+            onClick={() => setConfirmAction({ kind: 'unfollow' })}
+          >
+            <i className="bi bi-check2 me-1" />
+            Following
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-outline-primary btn-sm"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await networkApi.follow(p.userId);
+                setNotice({
+                  type: 'success',
+                  message: `Following ${p.name || 'user'}.`
+                });
+                await reload();
+              } catch (e) {
+                setNotice({
+                  type: 'danger',
+                  message: apiMessage(e)
+                });
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <i className="bi bi-person-check me-1" />
+            Follow
+          </button>
+        )}
 
         <button
           type="button"
           className="btn btn-outline-secondary btn-sm"
+          disabled={!connected}
+          title={connected ? undefined : 'Connect with this person to send a direct message'}
           onClick={async () => {
+            if (!connected) return;
             try {
               const conversation = await messageApi.start(p.userId);
               navigate(`/messages?conversation=${conversation.id}`);
@@ -313,9 +461,18 @@ export default function PublicProfile() {
           <i className="bi bi-slash-circle me-1" />
           Block
         </button>
+
+        <button
+          type="button"
+          className="btn btn-light btn-sm text-danger"
+          onClick={() => setShowReport(true)}
+        >
+          <i className="bi bi-flag me-1" />
+          Report
+        </button>
       </div>
     );
-  }, [mine, p?.userId, p?.name, busy, navigate]);
+  }, [mine, p?.userId, p?.name, busy, navigate, viewerRole, connected, pendingSent, incomingRequestId, isFollowing, connectionId]);
 
   if (!data && !notice.message) return <Loader />;
 
@@ -401,6 +558,58 @@ export default function PublicProfile() {
           </p>
         </section>
       )}
+
+      <ReportModal
+        show={showReport}
+        title="Report profile"
+        categories={reportCategoriesFor('PROFILE')}
+        onClose={() => setShowReport(false)}
+        onSubmit={(category, details) => professionalProfileApi.report(p.userId, category, details)}
+      />
+
+      <Modal
+        show={Boolean(confirmAction)}
+        title={
+          confirmAction?.kind === 'disconnect'
+            ? 'Remove connection'
+            : confirmAction?.kind === 'respond'
+            ? 'Connection request'
+            : 'Unfollow'
+        }
+        onClose={() => setConfirmAction(null)}
+      >
+        {confirmAction && confirmAction.kind === 'respond' ? (
+          <div>
+            <p>
+              {(p.name || 'This user')} wants to connect with you. Would you like to accept or decline this request?
+            </p>
+            <div className="d-flex justify-content-end gap-2">
+              <button type="button" className="btn btn-outline-secondary" disabled={responding} onClick={() => respondToRequest(false)}>
+                Decline
+              </button>
+              <button type="button" className="btn btn-brand" disabled={responding} onClick={() => respondToRequest(true)}>
+                Accept
+              </button>
+            </div>
+          </div>
+        ) : confirmAction && (
+          <div>
+            <p>
+              {confirmAction.kind === 'disconnect'
+                ? `Remove your connection with ${p.name || 'this user'}? You'll need to send a new request to reconnect.`
+                : `Unfollow ${p.name || 'this user'}? You'll stop seeing their posts in your feed.`}
+            </p>
+            <div className="d-flex justify-content-end gap-2">
+              <button type="button" className="btn btn-outline-secondary" onClick={() => setConfirmAction(null)}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn-danger" onClick={confirmPending}>
+                {confirmAction.kind === 'disconnect' ? 'Remove connection' : 'Unfollow'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

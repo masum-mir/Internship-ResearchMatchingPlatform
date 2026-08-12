@@ -5,11 +5,17 @@ import com.ewu.matching.dto.request.AdminSetPasswordRequest;
 import com.ewu.matching.dto.request.ChangeEmailRequest;
 import com.ewu.matching.dto.request.ChangeNameRequest;
 import com.ewu.matching.dto.request.ChangeRoleRequest;
+import com.ewu.matching.dto.response.CommentResponse;
+import com.ewu.matching.dto.response.ContentReportResponse;
+import com.ewu.matching.dto.response.ConversationResponse;
+import com.ewu.matching.dto.response.MessageResponse;
+import com.ewu.matching.dto.response.PostResponse;
 import com.ewu.matching.dto.response.ReportResponse;
 import com.ewu.matching.dto.response.UserResponse;
 import com.ewu.matching.enums.OpportunityType;
 import com.ewu.matching.security.access.IsAdmin;
 import com.ewu.matching.service.AdminService;
+import com.ewu.matching.service.ContentReportService;
 import com.ewu.matching.service.FileStorageService;
 import com.ewu.matching.service.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,6 +40,7 @@ public class AdminController {
 
     private final AdminService adminService;
     private final ReportService reportService;
+    private final ContentReportService contentReportService;
     private final FileStorageService fileStorageService;
 
     @Operation(summary = "Get my admin profile")
@@ -71,6 +78,36 @@ public class AdminController {
     @GetMapping("/users")
     public ResponseEntity<List<UserResponse>> listUsers() {
         return ResponseEntity.ok(adminService.listUsers());
+    }
+
+    @Operation(summary = "Monitor: list every post on the platform (ADMIN)")
+    @GetMapping("/posts")
+    public ResponseEntity<List<PostResponse>> listAllPosts() {
+        return ResponseEntity.ok(adminService.listAllPosts());
+    }
+
+    @Operation(summary = "Monitor: view a single social post regardless of visibility (ADMIN)")
+    @GetMapping("/social-posts/{id}")
+    public ResponseEntity<PostResponse> getSocialPost(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.getSocialPost(id));
+    }
+
+    @Operation(summary = "Monitor: view a single comment regardless of the parent post's visibility (ADMIN)")
+    @GetMapping("/comments/{id}")
+    public ResponseEntity<CommentResponse> getComment(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.getComment(id));
+    }
+
+    @Operation(summary = "Monitor: list every conversation on the platform (ADMIN)")
+    @GetMapping("/conversations")
+    public ResponseEntity<List<ConversationResponse>> listAllConversations() {
+        return ResponseEntity.ok(adminService.listAllConversations());
+    }
+
+    @Operation(summary = "Monitor: read the messages inside any conversation (ADMIN)")
+    @GetMapping("/conversations/{id}/messages")
+    public ResponseEntity<List<MessageResponse>> conversationMessages(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.listConversationMessages(id));
     }
 
     @Operation(summary = "Block a user (ADMIN)")
@@ -127,5 +164,24 @@ public class AdminController {
     @GetMapping("/reports")
     public ResponseEntity<ReportResponse> reports() {
         return ResponseEntity.ok(reportService.getReport());
+    }
+
+    @Operation(summary = "List user-submitted content reports, optionally filtered by status (ADMIN)")
+    @GetMapping("/content-reports")
+    public ResponseEntity<List<ContentReportResponse>> contentReports(
+            @RequestParam(required = false) String status) {
+        return ResponseEntity.ok(contentReportService.list(status));
+    }
+
+    @Operation(summary = "Mark a content report resolved, e.g. after taking action (ADMIN)")
+    @PutMapping("/content-reports/{id}/resolve")
+    public ResponseEntity<ContentReportResponse> resolveContentReport(@PathVariable Long id) {
+        return ResponseEntity.ok(contentReportService.resolve(id));
+    }
+
+    @Operation(summary = "Dismiss a content report as not requiring action (ADMIN)")
+    @PutMapping("/content-reports/{id}/dismiss")
+    public ResponseEntity<ContentReportResponse> dismissContentReport(@PathVariable Long id) {
+        return ResponseEntity.ok(contentReportService.dismiss(id));
     }
 }

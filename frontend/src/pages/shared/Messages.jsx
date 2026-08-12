@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { messageApi } from '../../api/messageApi.js';
+import { networkApi } from '../../api/networkApi.js';
 import { directoryApi } from '../../api/directoryApi.js';
 import { apiMessage } from '../../api/axiosClient.js';
 import { resolveUploadUrl } from '../../utils/imageUrl.js';
@@ -10,10 +11,13 @@ import Avatar from '../../components/Avatar.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
 import Loader from '../../components/Loader.jsx';
 import Modal from '../../components/Modal.jsx';
+import ReportModal from '../../components/ReportModal.jsx';
 import UserCard from '../../components/UserCard.jsx';
+import { reportCategoriesFor } from '../../utils/reportCategories.js';
 
 export default function Messages() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [conversations, setConversations] = useState([]);
   const [selectedId, setSelectedId] = useState(params.get('conversation'));
@@ -27,13 +31,32 @@ export default function Messages() {
   const [showNew, setShowNew] = useState(false);
   const [peopleQuery, setPeopleQuery] = useState('');
   const [people, setPeople] = useState([]);
+  const [reportTarget, setReportTarget] = useState(null);
+  const [connectedIds, setConnectedIds] = useState(new Set());
   const bottomRef = useRef(null);
+
+  const loadConnectedIds = useCallback(() => {
+    networkApi.connections()
+      .then((list) => {
+        const ids = new Set();
+        (list || []).forEach((c) => {
+          ids.add(Number(c.requesterId) === Number(user?.userId) ? Number(c.addresseeId) : Number(c.requesterId));
+        });
+        setConnectedIds(ids);
+      })
+      .catch(() => setConnectedIds(new Set()));
+  }, [user?.userId]);
+
+  useEffect(() => {
+    loadConnectedIds();
+  }, [loadConnectedIds]);
 
   const loadConversations = useCallback(async () => {
     try {
-      const list = await messageApi.conversations();
-      setConversations(list || []);
-      return list || [];
+      const list = (await messageApi.conversations() || [])
+        .filter((conversation) => !(conversation.participants || []).some((participant) => participant.role === 'ADMIN'));
+      setConversations(list);
+      return list;
     } catch (e) {
       setError(apiMessage(e));
       return [];
@@ -59,8 +82,9 @@ export default function Messages() {
   useEffect(() => {
     loadConversations().then((list) => {
       const requested = params.get('conversation');
-      if (requested) setSelectedId(requested);
+      if (requested && list.some((conversation) => String(conversation.id) === requested)) setSelectedId(requested);
       else if (list.length > 0) setSelectedId(String(list[0].id));
+      else setSelectedId(null);
     });
   }, [loadConversations]);
 
@@ -72,10 +96,11 @@ export default function Messages() {
     const timer = window.setInterval(() => {
       loadMessages(selectedId, true);
       loadConversations();
+      loadConnectedIds();
     }, 8000);
 
     return () => window.clearInterval(timer);
-  }, [selectedId, loadMessages, loadConversations, setParams]);
+  }, [selectedId, loadMessages, loadConversations, loadConnectedIds, setParams]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -204,13 +229,18 @@ export default function Messages() {
                 {(() => {
                   const other = otherParticipant(selected);
                   return (
-                    <>
+                    <button
+                      type="button"
+                      className="chat-head-identity"
+                      onClick={() => other?.userId && other.role !== 'ADMIN' && navigate(`/profile/${other.userId}`)}
+                      title={other?.role !== 'ADMIN' && other?.name ? `View ${other.name}'s profile` : undefined}
+                    >
                       <Avatar name={other?.name} image={other?.profilePicture} size={42} />
                       <div>
                         <div className="fw-semibold">{other?.name || 'Conversation'}</div>
                         <div className="text-muted small">{other?.headline || other?.role}</div>
                       </div>
-                    </>
+                    </button>
                   );
                 })()}
               </div>
@@ -242,6 +272,15 @@ export default function Messages() {
                           <div className="message-meta">
                             {timeAgo(message.sentAt)}
                             {mine && <span> · {message.read ? 'Read' : 'Sent'}</span>}
+                            {!mine && (
+                              <button
+                                type="button"
+                                className="mini-link ms-2 text-danger"
+                                onClick={() => setReportTarget(message)}
+                              >
+                                <i className="bi bi-flag" /> Report
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -252,6 +291,17 @@ export default function Messages() {
               </div>
 
               {error && <div className="px-3 py-2 text-danger small">{error}</div>}
+
+              {(() => {
+                const other = otherParticipant(selected);
+                const stillConnected = !other?.userId || connectedIds.has(Number(other.userId));
+                if (stillConnected) return null;
+                return (
+                  <div className="px-3 py-2 text-danger small">
+                    You're no longer connected with {other?.name || 'this person'} — reconnect to send new messages.
+                  </div>
+                );
+              })()}
 
               {attachment && (
                 <div className="selected-attachment">
@@ -270,13 +320,27 @@ export default function Messages() {
                     type="file"
                     hidden
                     accept="image/*,.pdf,.doc,.docx,.txt"
+                    disabled={!(() => {
+                      const other = otherParticipant(selected);
+                      return !other?.userId || connectedIds.has(Number(other.userId));
+                    })()}
                     onChange={(e) => setAttachment(e.target.files?.[0] || null)}
                   />
                 </label>
                 <textarea
                   rows={1}
                   className="form-control"
-                  placeholder="Write a message…"
+                  placeholder={
+                    (() => {
+                      const other = otherParticipant(selected);
+                      const stillConnected = !other?.userId || connectedIds.has(Number(other.userId));
+                      return stillConnected ? 'Write a message…' : 'Reconnect to send new messages';
+                    })()
+                  }
+                  disabled={!(() => {
+                    const other = otherParticipant(selected);
+                    return !other?.userId || connectedIds.has(Number(other.userId));
+                  })()}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   onKeyDown={(e) => {
@@ -286,7 +350,17 @@ export default function Messages() {
                     }
                   }}
                 />
-                <button className="btn btn-brand" disabled={sending || (!text.trim() && !attachment)}>
+                <button
+                  className="btn btn-brand"
+                  disabled={
+                    sending ||
+                    (!text.trim() && !attachment) ||
+                    !(() => {
+                      const other = otherParticipant(selected);
+                      return !other?.userId || connectedIds.has(Number(other.userId));
+                    })()
+                  }
+                >
                   <i className="bi bi-send-fill" />
                 </button>
               </form>
@@ -308,20 +382,36 @@ export default function Messages() {
         <div className="new-message-results">
           {people
             .filter((p) => Number(p.userId) !== Number(user?.userId))
-            .map((person) => (
-              <UserCard
-                key={person.userId}
-                compact
-                person={person}
-                actions={
-                  <button className="btn btn-outline-primary btn-sm" onClick={() => startConversation(person.userId)}>
-                    Message
-                  </button>
-                }
-              />
-            ))}
+            .map((person) => {
+              const isConnected = connectedIds.has(Number(person.userId));
+              return (
+                <UserCard
+                  key={person.userId}
+                  compact
+                  person={person}
+                  actions={
+                    <button
+                      className="btn btn-outline-primary btn-sm"
+                      disabled={!isConnected}
+                      title={isConnected ? undefined : 'Connect with this person to message them'}
+                      onClick={() => startConversation(person.userId)}
+                    >
+                      {isConnected ? 'Message' : 'Not connected'}
+                    </button>
+                  }
+                />
+              );
+            })}
         </div>
       </Modal>
+
+      <ReportModal
+        show={!!reportTarget}
+        title="Report message"
+        categories={reportCategoriesFor('MESSAGE')}
+        onClose={() => setReportTarget(null)}
+        onSubmit={(category, details) => messageApi.report(reportTarget.id, category, details)}
+      />
     </div>
   );
 }

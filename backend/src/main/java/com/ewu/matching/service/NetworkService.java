@@ -20,6 +20,8 @@ public interface NetworkService {
 
     List<ConnectionResponse> pendingReceived();
 
+    List<ConnectionResponse> pendingSent();
+
     FollowResponse follow(Long userId);
 
     void unfollow(Long userId);

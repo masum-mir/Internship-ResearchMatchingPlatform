@@ -49,12 +49,12 @@ export default function Register() {
           <Notice type="danger" message={error} onClose={() => setError('')} />
           <form onSubmit={submit}>
             <label className="form-label">I am a</label>
-            <div className="row g-2 mb-3">
+            <div className="auth-role-picker row g-2 mb-3">
               {ROLES.map((r) => (
                 <div className="col-4" key={r.value}>
                   <button type="button"
                     onClick={() => setForm({ ...form, role: r.value })}
-                    className={`btn w-100 h-100 py-2 ${form.role === r.value ? 'btn-brand' : 'btn-outline-secondary'}`}
+                    className={`auth-role-choice btn w-100 h-100 py-2 ${form.role === r.value ? 'btn-brand' : 'btn-outline-secondary'}`}
                     style={{ borderRadius: 12 }}>
                     <i className={`bi ${r.icon} d-block fs-5 mb-1`} />
                     <span className="small fw-semibold">{r.label}</span>

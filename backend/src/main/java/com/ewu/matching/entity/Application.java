@@ -56,6 +56,9 @@ public class Application {
     @Column(name = "reviewer_note", columnDefinition = "TEXT")
     private String reviewerNote;
 
+    @Column(name = "withdrawal_reason", columnDefinition = "TEXT")
+    private String withdrawalReason;
+
     @Column(name = "applied_at", nullable = false, updatable = false)
     private LocalDateTime appliedAt;
 

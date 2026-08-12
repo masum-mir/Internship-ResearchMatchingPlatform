@@ -5,7 +5,7 @@ import { facultyApi, companyApi } from '../api/profileApi.js';
 import { adminApi } from '../api/adminApi.js';
 import { notificationApi } from '../api/notificationApi.js';
 import { useAuth } from '../auth/AuthContext.jsx';
-import { PROFILE_UPDATED_EVENT } from '../utils/profileEvents.js';
+import { PROFILE_UPDATED_EVENT, NOTIFICATIONS_UPDATED_EVENT } from '../utils/profileEvents.js';
 import Avatar from './Avatar.jsx';
 
 const PROFILE_PATH = {
@@ -57,7 +57,11 @@ export default function Navbar({ onToggleSidebar }) {
   useEffect(() => {
     loadUnread();
     const timer = window.setInterval(loadUnread, 30000);
-    return () => window.clearInterval(timer);
+    window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, loadUnread);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, loadUnread);
+    };
   }, [loadUnread]);
 
   useEffect(() => {
@@ -81,6 +85,18 @@ export default function Navbar({ onToggleSidebar }) {
 
   const name = displayName(profile, user, role);
   const image = profile?.profilePicture;
+  const isAdmin = role === 'ADMIN';
+
+  // Admins have no personal photo/initials to show — same generic shield
+  // badge used on the admin sidebar card, just sized for the navbar.
+  const identityBadge = (badgeSize) =>
+    isAdmin ? (
+      <span className="admin-avatar-badge" style={{ width: badgeSize, height: badgeSize, fontSize: badgeSize * 0.5, marginTop: 0 }}>
+        <i className="bi bi-shield-lock-fill" />
+      </span>
+    ) : (
+      <Avatar name={name} image={image} size={badgeSize} />
+    );
 
   return (
     <nav className="li-navbar d-flex align-items-center px-3 px-md-4">
@@ -129,18 +145,18 @@ export default function Navbar({ onToggleSidebar }) {
             onClick={() => setMenuOpen((open) => !open)}
             type="button"
           >
-            <Avatar name={name} image={image} size={34} />
-            <span className="d-none d-lg-block text-start">
-              <span className="navbar-profile-name">{name}</span>
-              <span className="navbar-profile-role">{role}</span>
-            </span>
+            {identityBadge(34)}
+              <span className="d-none d-lg-block text-start">
+                <span className="navbar-profile-name">{name}</span>
+              <span className="navbar-profile-role">{role === 'ADMIN' ? 'Administrator' : role}</span>
+              </span>
             <i className="bi bi-chevron-down small" />
           </button>
 
           {menuOpen && (
             <div className="profile-menu">
               <div className="px-3 py-3 border-bottom d-flex align-items-center gap-2">
-                <Avatar name={name} image={image} size={46} />
+                {identityBadge(46)}
                 <div className="overflow-hidden">
                   <div className="fw-semibold text-truncate">{name}</div>
                   <div className="text-muted small text-truncate">{user?.email}</div>
@@ -149,9 +165,11 @@ export default function Navbar({ onToggleSidebar }) {
               <Link to={PROFILE_PATH[role] || '/feed'} onClick={() => setMenuOpen(false)}>
                 <i className="bi bi-person" /> My profile
               </Link>
-              <Link to={`/profile/${user?.userId}`} onClick={() => setMenuOpen(false)}>
-                <i className="bi bi-eye" /> View public profile
-              </Link>
+              {!isAdmin && (
+                <Link to={`/profile/${user?.userId}`} onClick={() => setMenuOpen(false)}>
+                  <i className="bi bi-eye" /> View public profile
+                </Link>
+              )}
               <Link to="/change-password" onClick={() => setMenuOpen(false)}>
                 <i className="bi bi-key" /> Change password
               </Link>

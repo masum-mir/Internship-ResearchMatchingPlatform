@@ -15,6 +15,7 @@ public record ApplicationResponse(
         String coverLetter,
         String applicantNote,
         String reviewerNote,
+        String withdrawalReason,
         LocalDateTime appliedAt,
         LocalDateTime updatedAt,
         LocalDateTime reviewedAt,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { applicationApi } from '../api/applicationApi.js';
 import { apiMessage } from '../api/axiosClient.js';
+import { isOpportunityClosed } from '../utils/format.js';
 import Modal from './Modal.jsx';
 
 export default function ApplyModal({ show, opportunity, type, onClose, onApplied }) {
@@ -23,6 +24,7 @@ export default function ApplyModal({ show, opportunity, type, onClose, onApplied
   if (!opportunity) return null;
 
   const title = type === 'RESEARCH' ? opportunity.topic : opportunity.title;
+  const closed = isOpportunityClosed(opportunity);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -120,6 +122,9 @@ export default function ApplyModal({ show, opportunity, type, onClose, onApplied
         </div>
 
         {error && <div className="alert alert-danger py-2">{error}</div>}
+        {closed && !error && (
+          <div className="alert alert-warning py-2">This opportunity is no longer accepting applications.</div>
+        )}
 
         <div className="d-flex justify-content-end gap-2">
           <button type="button" className="btn btn-outline-secondary" onClick={onClose}>
@@ -127,7 +132,7 @@ export default function ApplyModal({ show, opportunity, type, onClose, onApplied
           </button>
           <button
             className="btn btn-brand"
-            disabled={busy || (!useSavedResume && !resume)}
+            disabled={busy || closed || (!useSavedResume && !resume)}
           >
             {busy ? 'Submitting…' : 'Submit application'}
           </button>

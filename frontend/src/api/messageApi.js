@@ -15,5 +15,8 @@ export const messageApi = {
         ).then((r) => r.data)
       : client.post(`/messages/conversations/${conversationId}`, body).then((r) => r.data),
 
-  markRead: (conversationId) => client.put(`/messages/conversations/${conversationId}/read`)
+  markRead: (conversationId) => client.put(`/messages/conversations/${conversationId}/read`),
+
+  report: (id, category, details = '') =>
+    client.post(`/messages/${id}/report`, { category, details }).then((r) => r.data)
 };

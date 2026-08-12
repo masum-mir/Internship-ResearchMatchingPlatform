@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { internshipApi } from '../../api/internshipApi.js';
 import { bookmarkApi } from '../../api/bookmarkApi.js';
+import { applicationApi } from '../../api/applicationApi.js';
 import { apiMessage } from '../../api/axiosClient.js';
 import OpportunityCard from '../../components/OpportunityCard.jsx';
 import OpportunityDetailModal from '../../components/OpportunityDetailModal.jsx';
@@ -13,6 +14,7 @@ export default function BrowseInternships() {
   const [mode, setMode] = useState('matched');
   const [items, setItems] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
+  const [applications, setApplications] = useState([]);
   const [filters, setFilters] = useState({ title: '', company: '', skill: '', location: '' });
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState({ type: '', message: '' });
@@ -21,6 +23,9 @@ export default function BrowseInternships() {
 
   const loadBookmarks = useCallback(() =>
     bookmarkApi.mine().then(setBookmarks).catch(() => setBookmarks([])), []);
+
+  const loadApplications = useCallback(() =>
+    applicationApi.mine().then(setApplications).catch(() => setApplications([])), []);
 
   const loadMatched = useCallback(async () => {
     setLoading(true);
@@ -37,7 +42,8 @@ export default function BrowseInternships() {
   useEffect(() => {
     loadMatched();
     loadBookmarks();
-  }, [loadMatched, loadBookmarks]);
+    loadApplications();
+  }, [loadMatched, loadBookmarks, loadApplications]);
 
   const search = async (event) => {
     event?.preventDefault();
@@ -64,6 +70,14 @@ export default function BrowseInternships() {
       .forEach((b) => map.set(Number(b.opportunityId), b));
     return map;
   }, [bookmarks]);
+
+  const appliedIds = useMemo(() => {
+    const ids = new Set();
+    applications
+      .filter((a) => a.targetType === 'INTERNSHIP' && a.status !== 'WITHDRAWN')
+      .forEach((a) => ids.add(Number(a.opportunityId)));
+    return ids;
+  }, [applications]);
 
   const toggleBookmark = async (internship) => {
     try {
@@ -141,6 +155,7 @@ export default function BrowseInternships() {
               opportunity={internship}
               match={match}
               bookmarked={bookmarked.has(Number(internship.id))}
+              applied={appliedIds.has(Number(internship.id))}
               onBookmark={() => toggleBookmark(internship)}
               onView={() => setDetail({ internship, match })}
               onApply={() => setApplyItem(internship)}
@@ -154,6 +169,7 @@ export default function BrowseInternships() {
         type="INTERNSHIP"
         opportunity={detail?.internship}
         match={detail?.match}
+        applied={detail ? appliedIds.has(Number(detail.internship.id)) : false}
         onClose={() => setDetail(null)}
         onApply={() => {
           setApplyItem(detail.internship);
@@ -166,7 +182,10 @@ export default function BrowseInternships() {
         opportunity={applyItem}
         type="INTERNSHIP"
         onClose={() => setApplyItem(null)}
-        onApplied={() => setNotice({ type: 'success', message: 'Application submitted successfully.' })}
+        onApplied={() => {
+          setNotice({ type: 'success', message: 'Application submitted successfully.' });
+          loadApplications();
+        }}
       />
     </div>
   );

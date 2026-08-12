@@ -1,4 +1,4 @@
-import { enumLabel, formatDate, formatMoney, joinNonEmpty } from '../utils/format.js';
+import { enumLabel, formatDate, formatMoney, isOpportunityClosed, joinNonEmpty } from '../utils/format.js';
 import Modal from './Modal.jsx';
 import SkillChips from './SkillChips.jsx';
 
@@ -12,9 +12,10 @@ function TextSection({ title, value }) {
   );
 }
 
-export default function OpportunityDetailModal({ show, type, opportunity, match, onClose, onApply }) {
+export default function OpportunityDetailModal({ show, type, opportunity, match, onClose, onApply, applied = false }) {
   if (!opportunity) return null;
   const isResearch = type === 'RESEARCH';
+  const closed = isOpportunityClosed(opportunity);
   const title = isResearch ? opportunity.topic : opportunity.title;
   const owner = isResearch ? opportunity.facultyName : opportunity.companyName;
   const salary = isResearch
@@ -86,9 +87,19 @@ export default function OpportunityDetailModal({ show, type, opportunity, match,
 
       {onApply && (
         <div className="d-flex justify-content-end mt-4">
-          <button className="btn btn-brand" onClick={onApply}>
-            Apply now
-          </button>
+          {applied ? (
+            <button className="btn btn-outline-success" disabled>
+              <i className="bi bi-check2-circle me-1" /> Applied
+            </button>
+          ) : closed ? (
+            <button className="btn btn-outline-secondary" disabled title="This opportunity is no longer accepting applications">
+              Closed
+            </button>
+          ) : (
+            <button className="btn btn-brand" onClick={onApply}>
+              Apply now
+            </button>
+          )}
         </div>
       )}
     </Modal>

@@ -23,9 +23,11 @@ public class PostServiceImpl implements PostService {
     private final PostShareRepository shareRepository;
     private final SavedPostRepository savedRepository;
     private final ConnectionRepository connectionRepository;
+    private final UserFollowRepository followRepository;
     private final CurrentUserProvider currentUser;
     private final NotificationService notificationService;
     private final ProfileLookupService profileLookup;
+    private final UserVisibilityService userVisibility;
 
     @Override
     @Transactional
@@ -71,6 +73,7 @@ public class PostServiceImpl implements PostService {
     public PostResponse getById(Long id) {
         User me = currentUser.currentUser();
         Post p = requirePost(id);
+        userVisibility.requirePublicUser(p.getAuthor());
         visible(p, me, true);
         return map(p, me);
     }
@@ -79,7 +82,10 @@ public class PostServiceImpl implements PostService {
     @Transactional(readOnly = true)
     public List<PostResponse> feed() {
         User me = currentUser.currentUser();
-        return postRepository.findTop100ByDeletedFalseOrderByCreatedAtDesc().stream().filter(p -> canView(p, me))
+        Set<Long> network = relevantAuthorIds(me);
+        return postRepository.findTop100ByDeletedFalseOrderByCreatedAtDesc().stream()
+                .filter(p -> network.contains(p.getAuthor().getId()) && canView(p, me))
+                .filter(p -> !userVisibility.isAdmin(p.getAuthor()))
                 .map(p -> map(p, me)).toList();
     }
 
@@ -98,7 +104,7 @@ public class PostServiceImpl implements PostService {
             return feed();
         User me = currentUser.currentUser();
         return postRepository.findTop50ByContentContainingIgnoreCaseAndDeletedFalseOrderByCreatedAtDesc(query.trim())
-                .stream().filter(p -> canView(p, me)).map(p -> map(p, me)).toList();
+                .stream().filter(p -> !userVisibility.isAdmin(p.getAuthor()) && canView(p, me)).map(p -> map(p, me)).toList();
     }
 
     @Override
@@ -107,12 +113,14 @@ public class PostServiceImpl implements PostService {
         User me = currentUser.currentUser();
         Post p = requirePost(id);
         visible(p, me, true);
-        PostReaction reaction = reactionRepository.findByPost_IdAndUser_Id(id, me.getId())
-                .orElseGet(() -> PostReaction.builder().post(p).user(me).build());
+        Optional<PostReaction> existing = reactionRepository.findByPost_IdAndUser_Id(id, me.getId());
+        PostReaction reaction = existing.orElseGet(() -> PostReaction.builder().post(p).user(me).build());
         reaction.setType(request.type());
         reactionRepository.save(reaction);
-        notificationService.create(p.getAuthor(), me, NotificationType.POST_REACTED,
-                profileLookup.displayName(me) + " reacted to your post", "POST", p.getId());
+        if (existing.isEmpty()) {
+            notificationService.create(p.getAuthor(), me, NotificationType.POST_REACTED,
+                    profileLookup.displayName(me) + " reacted to your post", "POST", p.getId());
+        }
         return map(p, me);
     }
 
@@ -123,6 +131,22 @@ public class PostServiceImpl implements PostService {
         Post p = requirePost(id);
         reactionRepository.findByPost_IdAndUser_Id(id, me.getId()).ifPresent(reactionRepository::delete);
         return map(p, me);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PostReactionResponse> reactions(Long id) {
+        User me = currentUser.currentUser();
+        Post post = requirePost(id);
+        visible(post, me, true);
+        return reactionRepository.findByPost_Id(id).stream()
+                .filter(reaction -> !userVisibility.isAdmin(reaction.getUser()))
+                .map(reaction -> {
+                    var profile = profileLookup.summary(reaction.getUser());
+                    return new PostReactionResponse(reaction.getUser().getId(), profile.name(),
+                            profile.profilePicture(), reaction.getType());
+                })
+                .toList();
     }
 
     @Override
@@ -211,10 +235,13 @@ public class PostServiceImpl implements PostService {
         Post p = postRepository.findById(id).orElseThrow(() -> ResourceNotFoundException.of("Post", id));
         if (p.isDeleted())
             throw ResourceNotFoundException.of("Post", id);
+        userVisibility.requirePublicUser(p.getAuthor());
         return p;
     }
 
     private boolean canView(Post p, User me) {
+        if (userVisibility.isAdmin(p.getAuthor()))
+            return false;
         if (p.getAuthor().getId().equals(me.getId()))
             return true;
         if (connectionRepository.areBlocked(me.getId(), p.getAuthor().getId()))
@@ -222,6 +249,22 @@ public class PostServiceImpl implements PostService {
         return p.getVisibility() == PostVisibility.PUBLIC ||
                 (p.getVisibility() == PostVisibility.CONNECTIONS_ONLY
                         && connectionRepository.areConnected(me.getId(), p.getAuthor().getId()));
+    }
+
+    // Home feed is limited to yourself plus the people you actually have a
+    // relationship with (following, or a mutual connection) — not every
+    // public post on the platform, so it behaves like a real social feed
+    // rather than a firehose of strangers' posts.
+    private Set<Long> relevantAuthorIds(User me) {
+        Set<Long> ids = new HashSet<>();
+        ids.add(me.getId());
+        followRepository.findByFollower_IdOrderByCreatedAtDesc(me.getId())
+                .forEach(f -> ids.add(f.getFollowing().getId()));
+        connectionRepository.findAcceptedForUser(me.getId()).forEach(c -> {
+            ids.add(c.getRequester().getId());
+            ids.add(c.getAddressee().getId());
+        });
+        return ids;
     }
 
     private void visible(Post p, User me, boolean fail) {

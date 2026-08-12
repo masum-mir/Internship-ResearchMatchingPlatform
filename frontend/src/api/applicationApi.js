@@ -8,7 +8,7 @@ export const applicationApi = {
     }
     return client.post('/applications', body).then((r) => r.data);
   },
-  withdraw: (id) => client.delete(`/applications/${id}`),
+  withdraw: (id, reason = '') => client.delete(`/applications/${id}`, { data: reason ? { reason } : {} }),
   mine: () => client.get('/applications/me').then((r) => r.data),
   internshipApplicants: (internshipId) =>
     client.get(`/applications/internships/${internshipId}`).then((r) => r.data),

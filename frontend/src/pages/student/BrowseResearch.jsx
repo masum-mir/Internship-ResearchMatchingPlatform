@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { researchApi } from '../../api/researchApi.js';
 import { bookmarkApi } from '../../api/bookmarkApi.js';
+import { applicationApi } from '../../api/applicationApi.js';
 import { apiMessage } from '../../api/axiosClient.js';
 import OpportunityCard from '../../components/OpportunityCard.jsx';
 import OpportunityDetailModal from '../../components/OpportunityDetailModal.jsx';
@@ -13,6 +14,7 @@ export default function BrowseResearch() {
   const [mode, setMode] = useState('matched');
   const [items, setItems] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
+  const [applications, setApplications] = useState([]);
   const [filters, setFilters] = useState({ topic: '', area: '', faculty: '' });
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState({ type: '', message: '' });
@@ -21,6 +23,9 @@ export default function BrowseResearch() {
 
   const loadBookmarks = useCallback(() =>
     bookmarkApi.mine().then(setBookmarks).catch(() => setBookmarks([])), []);
+
+  const loadApplications = useCallback(() =>
+    applicationApi.mine().then(setApplications).catch(() => setApplications([])), []);
 
   const loadMatched = useCallback(async () => {
     setLoading(true);
@@ -37,7 +42,8 @@ export default function BrowseResearch() {
   useEffect(() => {
     loadMatched();
     loadBookmarks();
-  }, [loadMatched, loadBookmarks]);
+    loadApplications();
+  }, [loadMatched, loadBookmarks, loadApplications]);
 
   const search = async (event) => {
     event?.preventDefault();
@@ -63,6 +69,14 @@ export default function BrowseResearch() {
       .forEach((b) => map.set(Number(b.opportunityId), b));
     return map;
   }, [bookmarks]);
+
+  const appliedIds = useMemo(() => {
+    const ids = new Set();
+    applications
+      .filter((a) => a.targetType === 'RESEARCH' && a.status !== 'WITHDRAWN')
+      .forEach((a) => ids.add(Number(a.opportunityId)));
+    return ids;
+  }, [applications]);
 
   const toggleBookmark = async (research) => {
     try {
@@ -130,6 +144,7 @@ export default function BrowseResearch() {
               opportunity={research}
               match={match}
               bookmarked={bookmarked.has(Number(research.id))}
+              applied={appliedIds.has(Number(research.id))}
               onBookmark={() => toggleBookmark(research)}
               onView={() => setDetail({ research, match })}
               onApply={() => setApplyItem(research)}
@@ -143,6 +158,7 @@ export default function BrowseResearch() {
         type="RESEARCH"
         opportunity={detail?.research}
         match={detail?.match}
+        applied={detail ? appliedIds.has(Number(detail.research.id)) : false}
         onClose={() => setDetail(null)}
         onApply={() => {
           setApplyItem(detail.research);
@@ -155,7 +171,10 @@ export default function BrowseResearch() {
         opportunity={applyItem}
         type="RESEARCH"
         onClose={() => setApplyItem(null)}
-        onApplied={() => setNotice({ type: 'success', message: 'Research application submitted successfully.' })}
+        onApplied={() => {
+          setNotice({ type: 'success', message: 'Research application submitted successfully.' });
+          loadApplications();
+        }}
       />
     </div>
   );

@@ -45,5 +45,8 @@ export const professionalProfileApi = {
     unwrap(await api.put(`/profiles/me/experience/${id}`, data)),
 
   deleteExperience: async (id) =>
-    unwrap(await api.delete(`/profiles/me/experience/${id}`))
+    unwrap(await api.delete(`/profiles/me/experience/${id}`)),
+
+  report: async (userId, category, details = '') =>
+    unwrap(await api.post(`/profiles/users/${userId}/report`, { category, details }))
 };

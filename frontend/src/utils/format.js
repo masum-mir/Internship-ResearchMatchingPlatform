@@ -53,3 +53,17 @@ export function formatMoney(min, max, currency = 'BDT') {
 export function joinNonEmpty(values, separator = ' • ') {
   return values.filter((x) => x !== null && x !== undefined && String(x).trim() !== '').join(separator);
 }
+
+// Mirrors the backend's own "accepting applications" check (ApplicationServiceImpl):
+// an opportunity stops accepting applications once its status is no longer ACTIVE,
+// or its deadline has passed. Internships use `deadline` (date-only) and research
+// posts use `applicationDeadline` (date-time), so we accept either field name.
+export function isOpportunityClosed(opportunity) {
+  if (!opportunity) return false;
+  if (opportunity.status && opportunity.status !== 'ACTIVE') return true;
+  const deadline = opportunity.deadline || opportunity.applicationDeadline;
+  if (!deadline) return false;
+  const d = new Date(deadline);
+  if (Number.isNaN(d.getTime())) return false;
+  return d.getTime() < Date.now();
+}

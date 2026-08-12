@@ -20,6 +20,8 @@ public interface ConnectionRepository extends JpaRepository<Connection, Long> {
 
     List<Connection> findByAddressee_IdAndStatusOrderByRequestedAtDesc(Long addresseeId, ConnectionStatus status);
 
+    List<Connection> findByRequester_IdAndStatusOrderByRequestedAtDesc(Long requesterId, ConnectionStatus status);
+
     @Query("select c from Connection c where c.status=com.ewu.matching.enums.ConnectionStatus.ACCEPTED and (c.requester.id=:userId or c.addressee.id=:userId) order by c.respondedAt desc")
     List<Connection> findAcceptedForUser(@Param("userId") Long userId);
 

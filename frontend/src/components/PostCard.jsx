@@ -7,16 +7,23 @@ import { resolveUploadUrl } from '../utils/imageUrl.js';
 import { enumLabel, timeAgo } from '../utils/format.js';
 import Avatar from './Avatar.jsx';
 import Modal from './Modal.jsx';
+import ReportModal from './ReportModal.jsx';
+import { reportCategoriesFor } from '../utils/reportCategories.js';
 
 const REACTIONS = [
-  ['LIKE', 'bi-hand-thumbs-up', 'Like'],
-  ['CELEBRATE', 'bi-stars', 'Celebrate'],
-  ['SUPPORT', 'bi-heart-pulse', 'Support'],
-  ['LOVE', 'bi-heart-fill', 'Love'],
-  ['INSIGHTFUL', 'bi-lightbulb', 'Insightful']
+  { type: 'LIKE', icon: 'bi-hand-thumbs-up-fill', label: 'Like', color: '#0a66c2' },
+  { type: 'CELEBRATE', icon: 'bi-stars', label: 'Celebrate', color: '#0f9d58' },
+  { type: 'SUPPORT', icon: 'bi-heart-pulse-fill', label: 'Support', color: '#8e44ad' },
+  { type: 'LOVE', icon: 'bi-heart-fill', label: 'Love', color: '#e0245e' },
+  { type: 'INSIGHTFUL', icon: 'bi-lightbulb-fill', label: 'Insightful', color: '#f5a623' },
+  { type: 'CURIOUS', icon: 'bi-question-circle-fill', label: 'Curious', color: '#e67e22' }
 ];
 
+const REACTION_MAP = Object.fromEntries(REACTIONS.map((r) => [r.type, r]));
+
 function CommentRow({ comment, own, onReply, onDelete }) {
+  const [showReport, setShowReport] = useState(false);
+
   return (
     <div className={`comment-row ${comment.parentCommentId ? 'comment-reply' : ''}`}>
       <Link to={`/profile/${comment.authorId}`}>
@@ -37,10 +44,25 @@ function CommentRow({ comment, own, onReply, onDelete }) {
           )}
         </div>
         <div className="comment-content">{comment.content}</div>
-        <button className="mini-link mt-1" type="button" onClick={() => onReply(comment)}>
-          Reply
-        </button>
+        <div className="d-flex gap-3">
+          <button className="mini-link mt-1" type="button" onClick={() => onReply(comment)}>
+            Reply
+          </button>
+          {!own && (
+            <button className="mini-link mt-1" type="button" onClick={() => setShowReport(true)}>
+              Report
+            </button>
+          )}
+        </div>
       </div>
+
+      <ReportModal
+        show={showReport}
+        title="Report comment"
+        categories={reportCategoriesFor('COMMENT')}
+        onClose={() => setShowReport(false)}
+        onSubmit={(category, details) => postApi.reportComment(comment.id, category, details)}
+      />
     </div>
   );
 }
@@ -59,6 +81,10 @@ export default function PostCard({
   const [commentsLoaded, setCommentsLoaded] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [replyTo, setReplyTo] = useState(null);
+  const [reactionsOpen, setReactionsOpen] = useState(false);
+  const [reactions, setReactions] = useState([]);
+  const [reactionsLoaded, setReactionsLoaded] = useState(false);
+  const [reactionsLoading, setReactionsLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -74,9 +100,12 @@ export default function PostCard({
   const [showShare, setShowShare] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [shareCaption, setShareCaption] = useState('');
+  const [showReport, setShowReport] = useState(false);
 
   useEffect(() => {
     setData(post);
+    setReactions([]);
+    setReactionsLoaded(false);
   }, [post]);
 
   useEffect(() => {
@@ -88,6 +117,22 @@ export default function PostCard({
       })
       .catch((e) => setError(apiMessage(e)));
   }, [commentsOpen, commentsLoaded, data.id]);
+
+  const openReactions = async () => {
+    setReactionsOpen(true);
+    if (reactionsLoaded || reactionsLoading) return;
+
+    setReactionsLoading(true);
+    setError('');
+    try {
+      setReactions(await postApi.reactions(data.id));
+      setReactionsLoaded(true);
+    } catch (e) {
+      setError(apiMessage(e));
+    } finally {
+      setReactionsLoading(false);
+    }
+  };
 
   const isOwn = Number(data.authorId) === Number(currentUserId);
   const canDelete = isOwn || role === 'ADMIN';
@@ -101,6 +146,18 @@ export default function PostCard({
         .join(' · '),
     [data.reactions]
   );
+
+  const topReactions = useMemo(
+    () =>
+      Object.entries(data.reactions || {})
+        .filter(([, count]) => Number(count) > 0)
+        .sort((a, b) => Number(b[1]) - Number(a[1]))
+        .slice(0, 3)
+        .map(([type]) => REACTION_MAP[type]).filter(Boolean),
+    [data.reactions]
+  );
+
+  const myReactionMeta = data.myReaction ? REACTION_MAP[data.myReaction] : null;
 
   const refresh = (next) => {
     setData(next);
@@ -233,45 +290,54 @@ export default function PostCard({
             </div>
           </div>
 
-          {(isOwn || canDelete) && (
-            <div className="post-options">
-              <button
-                className="icon-button"
-                type="button"
-                aria-label="Post options"
-                onClick={() => setOptionsOpen((open) => !open)}
-              >
-                <i className="bi bi-three-dots" />
-              </button>
-              {optionsOpen && (
-                <div className="post-options-menu">
-                  {isOwn && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOptionsOpen(false);
-                        setShowEdit(true);
-                      }}
-                    >
-                      <i className="bi bi-pencil me-2" /> Edit
-                    </button>
-                  )}
-                  {canDelete && (
-                    <button
-                      className="text-danger"
-                      type="button"
-                      onClick={() => {
-                        setOptionsOpen(false);
-                        removePost();
-                      }}
-                    >
-                      <i className="bi bi-trash me-2" /> Delete
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          <div className="post-options">
+            <button
+              className="icon-button"
+              type="button"
+              aria-label="Post options"
+              onClick={() => setOptionsOpen((open) => !open)}
+            >
+              <i className="bi bi-three-dots" />
+            </button>
+            {optionsOpen && (
+              <div className="post-options-menu">
+                {isOwn && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOptionsOpen(false);
+                      setShowEdit(true);
+                    }}
+                  >
+                    <i className="bi bi-pencil me-2" /> Edit
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    className="text-danger"
+                    type="button"
+                    onClick={() => {
+                      setOptionsOpen(false);
+                      removePost();
+                    }}
+                  >
+                    <i className="bi bi-trash me-2" /> Delete
+                  </button>
+                )}
+                {!isOwn && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOptionsOpen(false);
+                      setShowReport(true);
+                    }}
+                  >
+                    <i className="bi bi-flag me-2" /> Report
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {data.content && <div className="post-content">{data.content}</div>}
@@ -292,13 +358,31 @@ export default function PostCard({
 
         {(data.reactionCount > 0 || data.commentCount > 0 || data.shareCount > 0) && (
           <div className="post-stats">
-            <span title={reactionSummary}>
-              <i className="bi bi-hand-thumbs-up-fill text-primary me-1" />
-              {data.reactionCount || 0}
-            </span>
-            <span className="ms-auto">
-              {data.commentCount || 0} comments  
-            </span>
+            {data.reactionCount > 0 && (
+              <button
+                type="button"
+                className="reaction-summary-icons engagement-button"
+                title={reactionSummary}
+                onClick={openReactions}
+                aria-label={`View the ${data.reactionCount} people who reacted`}
+              >
+                {topReactions.map((r, i) => (
+                  <i
+                    key={r.type}
+                    className={`bi ${r.icon}`}
+                    style={{ color: r.color, marginLeft: i ? '-6px' : 0 }}
+                  />
+                ))}
+                <span className="ms-1">{data.reactionCount}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              className="ms-auto engagement-button"
+              onClick={() => setCommentsOpen(true)}
+            >
+              {data.commentCount || 0} comments
+            </button>
           </div>
         )}
 
@@ -306,17 +390,25 @@ export default function PostCard({
           <div className="reaction-action">
             <button
               type="button"
-              className={`post-action ${data.myReaction ? 'active' : ''}`}
+              className={`post-action ${myReactionMeta ? 'active' : ''}`}
+              style={myReactionMeta ? { color: myReactionMeta.color } : undefined}
               disabled={busy}
               onClick={() => react(data.myReaction || 'LIKE')}
             >
-              <i className="bi bi-hand-thumbs-up" />
-              {data.myReaction ? enumLabel(data.myReaction) : 'Like'}
+              <i className={`bi ${myReactionMeta ? myReactionMeta.icon : 'bi-hand-thumbs-up'}`} />
+              {myReactionMeta ? myReactionMeta.label : 'Like'}
             </button>
             <div className="reaction-picker">
-              {REACTIONS.map(([type, icon, label]) => (
-                <button key={type} type="button" title={label} onClick={() => react(type)}>
-                  <i className={`bi ${icon}`} />
+              {REACTIONS.map((r) => (
+                <button
+                  key={r.type}
+                  type="button"
+                  title={r.label}
+                  className={data.myReaction === r.type ? 'active' : ''}
+                  style={{ color: r.color }}
+                  onClick={() => react(r.type)}
+                >
+                  <i className={`bi ${r.icon}`} />
                 </button>
               ))}
             </div>
@@ -445,6 +537,38 @@ export default function PostCard({
           </div>
         </form>
       </Modal>
+
+      <Modal
+        show={reactionsOpen}
+        title="Reactions"
+        subtitle={`${data.reactionCount || 0} reaction${Number(data.reactionCount) === 1 ? '' : 's'}`}
+        onClose={() => setReactionsOpen(false)}
+      >
+        {reactionsLoading && <div className="text-muted small">Loading reactions…</div>}
+        {!reactionsLoading && reactionsLoaded && reactions.length === 0 && (
+          <div className="text-muted small">No reactions yet.</div>
+        )}
+        {!reactionsLoading && reactions.map((reaction) => {
+          const reactionMeta = REACTION_MAP[reaction.type];
+          return (
+            <Link key={reaction.userId} to={`/profile/${reaction.userId}`} className="engagement-person" onClick={() => setReactionsOpen(false)}>
+              <Avatar name={reaction.name} image={reaction.profilePicture} size={42} />
+              <span className="flex-grow-1 fw-semibold text-dark">{reaction.name}</span>
+              <span style={{ color: reactionMeta?.color }} title={reactionMeta?.label}>
+                <i className={`bi ${reactionMeta?.icon || 'bi-hand-thumbs-up-fill'}`} />
+              </span>
+            </Link>
+          );
+        })}
+      </Modal>
+
+      <ReportModal
+        show={showReport}
+        title="Report post"
+        categories={reportCategoriesFor('POST')}
+        onClose={() => setShowReport(false)}
+        onSubmit={(category, details) => postApi.report(data.id, category, details)}
+      />
     </>
   );
 }
