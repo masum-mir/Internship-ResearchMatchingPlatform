@@ -1,46 +1,71 @@
 import axios from 'axios';
 import { tokenStore } from '../auth/tokenStore.js';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+// Docker + Nginx:
+// Browser -> /api -> nginx -> backend:8080/api
+const baseURL = import.meta.env.VITE_API_BASE_URL || '/api';
 
-const axiosClient = axios.create({ baseURL });
-
-axiosClient.interceptors.request.use((config) => {
-  const token = tokenStore.getAccess();
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-
-  // Let the browser/Axios create the multipart boundary automatically.
-  if (config.data instanceof FormData) {
-    delete config.headers['Content-Type'];
-  } else if (config.data && !config.headers['Content-Type']) {
-    config.headers['Content-Type'] = 'application/json';
-  }
-
-  return config;
+const axiosClient = axios.create({
+  baseURL,
 });
+
+axiosClient.interceptors.request.use(
+  (config) => {
+    const token = tokenStore.getAccess();
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Let Axios/browser automatically set multipart boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    } else if (config.data && !config.headers['Content-Type']) {
+      config.headers['Content-Type'] = 'application/json';
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 let refreshing = null;
 
 axiosClient.interceptors.response.use(
   (response) => response,
+
   async (error) => {
     const original = error.config || {};
     const status = error.response?.status;
+
     const isAuthCall = original?.url?.includes('/auth/');
 
     if (status === 401 && !original._retry && !isAuthCall) {
       original._retry = true;
+
       try {
         if (!refreshing) {
           const refreshToken = tokenStore.getRefresh();
-          if (!refreshToken) throw new Error('No refresh token');
+
+          if (!refreshToken) {
+            throw new Error('No refresh token');
+          }
 
           refreshing = axios
-            .post(`${baseURL}/auth/refresh`, { refreshToken })
+            .post(`${baseURL}/auth/refresh`, {
+              refreshToken,
+            })
             .then((res) => {
-              tokenStore.setAccess(res.data.accessToken);
-              tokenStore.setRefresh(res.data.refreshToken);
-              return res.data.accessToken;
+              const accessToken = res.data.accessToken;
+              const newRefreshToken = res.data.refreshToken;
+
+              tokenStore.setAccess(accessToken);
+
+              if (newRefreshToken) {
+                tokenStore.setRefresh(newRefreshToken);
+              }
+
+              return accessToken;
             })
             .finally(() => {
               refreshing = null;
@@ -48,14 +73,18 @@ axiosClient.interceptors.response.use(
         }
 
         const newAccess = await refreshing;
+
         original.headers = original.headers || {};
         original.headers.Authorization = `Bearer ${newAccess}`;
+
         return axiosClient(original);
       } catch (refreshError) {
         tokenStore.clear();
+
         if (window.location.pathname !== '/login') {
           window.location.assign('/login');
         }
+
         return Promise.reject(refreshError);
       }
     }
@@ -66,7 +95,10 @@ axiosClient.interceptors.response.use(
 
 export function apiMessage(error) {
   const data = error?.response?.data;
-  if (!data) return error?.message || 'Network error';
+
+  if (!data) {
+    return error?.message || 'Network error';
+  }
 
   if (data.fieldErrors) {
     return Object.entries(data.fieldErrors)
