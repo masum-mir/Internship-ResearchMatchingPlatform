@@ -1,39 +1,134 @@
-# Internship & Research Matching Platform — Frontend
+# Oppzy Frontend
 
 React 18 · Vite · React Router 6 · Axios · Bootstrap 5 · Recharts
 
-## Prerequisites
-- Node.js 18+
-- The backend running at `http://localhost:8080` (see the backend project)
+The Oppzy frontend provides the role-based user interface for Students, Companies, Faculty, and Admins.
 
-## Setup
-```bash
-npm install
-cp .env.example .env   # adjust VITE_API_BASE_URL if needed
-npm run dev            # starts on http://localhost:5173
+---
+
+## Frontend Structure
+
+```text
+frontend/
+├── public/
+├── src/
+│   ├── api/
+│   ├── auth/
+│   ├── components/
+│   ├── layouts/
+│   ├── pages/
+│   ├── routes/
+│   ├── utils/
+│   ├── App.jsx
+│   └── main.jsx
+├── Dockerfile
+├── .dockerignore
+├── nginx.conf
+├── package.json
+├── package-lock.json
+├── vite.config.js
+└── README.md
 ```
 
-Build for production: `npm run build` (output in `dist/`).
+---
 
-## What's included
-- **JWT auth** with automatic access-token refresh and rotation handled in the
-  Axios interceptor (`src/api/axiosClient.js`); tokens kept in `localStorage`.
-- **Role-based routing** (`src/routes/AppRoutes.jsx`) with `ProtectedRoute` and
-  `RoleRoute` guards. Each role lands on its own dashboard and sees its own sidebar.
-- **Student**: dashboard, full profile manager (details, skills, projects,
-  certifications), match-ranked internship/research browsing with search,
-  one-click apply & bookmark, applications list, bookmarks.
-- **Company**: dashboard, profile, internship CRUD, applicant inbox (sorted by
-  match score) with status decisions and portfolio view.
-- **Faculty**: the same for research opportunities.
-- **Admin**: dashboard, user management (block/unblock), reports with pie & bar
-  charts (Recharts) fed by the backend report endpoint.
+## Prerequisites
 
-## Backend pairing
-This app calls the REST API documented in the backend's `API_TESTING.md`.
-The default admin (`admin@ewu.edu` / `Admin@12345`) is seeded by the backend.
+- Node.js 18+
+- npm
+- Oppzy backend running at `http://localhost:8080`
 
-## Notes
-- The match badge is color-coded: green ≥ 75%, amber ≥ 50%, red below.
-- CORS origins are configured on the backend via `CORS_ORIGINS` (defaults include
-  `http://localhost:5173`).
+---
+
+## Setup
+
+Open the frontend directory:
+
+```bash
+cd frontend
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create the environment file if an example exists:
+
+```bash
+cp .env.example .env
+```
+
+For normal local development:
+
+```env
+VITE_API_BASE_URL=http://localhost:8080/api
+```
+
+For Docker/Nginx:
+
+```env
+VITE_API_BASE_URL=/api
+```
+
+---
+
+## Run Frontend Locally
+
+```bash
+npm run dev
+```
+
+Development URL:
+
+```text
+http://localhost:5173
+```
+
+---
+
+## Production Build
+
+```bash
+npm run build
+```
+
+Production output:
+
+```text
+dist/
+```
+
+---
+
+## Main Frontend Features
+
+- JWT authentication
+- Automatic access-token refresh through Axios interceptor
+- Role-based routes and dashboards
+- Student opportunity browsing and application management
+- Company internship management
+- Faculty research opportunity management
+- Admin dashboard and user management
+- Match-score badges
+- Responsive interface
+- Dashboard charts with Recharts
+
+---
+
+## Backend Connection
+
+For local development:
+
+```text
+http://localhost:8080/api
+```
+
+For Docker/Nginx:
+
+```text
+/api
+```
+
+Nginx forwards `/api` requests to the backend container.
