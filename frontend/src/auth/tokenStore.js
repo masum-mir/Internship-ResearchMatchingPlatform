@@ -10,10 +10,10 @@ export const tokenStore = {
     const raw = localStorage.getItem(USER);
     return raw ? JSON.parse(raw) : null;
   },
-  setSession: ({ accessToken, refreshToken, userId, email, roles }) => {
+  setSession: ({ accessToken, refreshToken, userId, email, roles, credentialsSelfEditEnabled }) => {
     localStorage.setItem(ACCESS, accessToken);
     localStorage.setItem(REFRESH, refreshToken);
-    localStorage.setItem(USER, JSON.stringify({ userId, email, roles }));
+    localStorage.setItem(USER, JSON.stringify({ userId, email, roles, credentialsSelfEditEnabled }));
   },
   setAccess: (accessToken) => localStorage.setItem(ACCESS, accessToken),
   setRefresh: (refreshToken) => localStorage.setItem(REFRESH, refreshToken),

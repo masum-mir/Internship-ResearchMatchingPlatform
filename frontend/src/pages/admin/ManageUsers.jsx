@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { adminApi } from '../../api/adminApi.js';
 import { apiMessage } from '../../api/axiosClient.js';
 import Loader from '../../components/Loader.jsx';
 import Notice from '../../components/Toast.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
+import Modal from '../../components/Modal.jsx';
 
 const ROLES = ['STUDENT', 'FACULTY', 'COMPANY', 'ADMIN'];
 
@@ -11,7 +13,8 @@ const FIELD_META = {
   name: { label: 'Name', icon: 'bi-person' },
   role: { label: 'Role', icon: 'bi-person-badge' },
   email: { label: 'Email', icon: 'bi-envelope' },
-  password: { label: 'Password', icon: 'bi-key' }
+  password: { label: 'Password', icon: 'bi-key' },
+  selfEdit: { label: 'Self-edit permission', icon: 'bi-unlock' }
 };
 
 export default function ManageUsers() {
@@ -19,22 +22,8 @@ export default function ManageUsers() {
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState({ type: '', message: '' });
 
-  // Which row's "Edit" dropdown is open.
-  const [menuOpenId, setMenuOpenId] = useState(null);
-  const menuRefs = useRef(new Map());
-
-  // The active edit modal: { user, field } | null
+  const [actionUser, setActionUser] = useState(null);
   const [modal, setModal] = useState(null);
-
-  useEffect(() => {
-    const closeOnOutsideClick = (e) => {
-      if (menuOpenId == null) return;
-      const node = menuRefs.current.get(menuOpenId);
-      if (node && !node.contains(e.target)) setMenuOpenId(null);
-    };
-    document.addEventListener('mousedown', closeOnOutsideClick);
-    return () => document.removeEventListener('mousedown', closeOnOutsideClick);
-  }, [menuOpenId]);
 
   const load = () => {
     setLoading(true);
@@ -53,7 +42,7 @@ export default function ManageUsers() {
   };
 
   const openEdit = (u, field) => {
-    setMenuOpenId(null);
+    setActionUser(null);
     setNotice({ type: '', message: '' });
     setModal({ user: u, field });
   };
@@ -75,7 +64,7 @@ export default function ManageUsers() {
       {users.length === 0 ? <EmptyState icon="bi-people" title="No users" /> : (
         <div className="card border-0 shadow-sm">
           <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0">
+            <table className="table table-hover align-middle mb-0 manage-users-table">
               <thead className="table-light">
                 <tr>
                   <th>Name</th>
@@ -89,47 +78,41 @@ export default function ManageUsers() {
               <tbody>
                 {users.map((u) => (
                   <tr key={u.id}>
-                    <td style={{ minWidth: 160 }}>{u.name || <span className="text-muted">&mdash;</span>}</td>
-                    <td style={{ minWidth: 200 }}>{u.email}</td>
-                    <td>{u.roles?.map((r) => <span key={r} className="badge bg-light text-dark border me-1">{r}</span>)}</td>
-                    <td>{u.blocked
+                    <td data-label="Name" style={{ minWidth: 160 }}>
+                      {u.roles?.includes('ADMIN') ? (
+                        <Link className="fw-medium text-decoration-none" to="/admin/profile">
+                          {u.name || 'Administrator account'}
+                        </Link>
+                      ) : (
+                        <Link className="fw-medium text-decoration-none" to={`/profile/${u.id}`}>
+                          {u.name || 'View profile'}
+                        </Link>
+                      )}
+                    </td>
+                    <td data-label="Email" style={{ minWidth: 200 }}>{u.email}</td>
+                    <td data-label="Roles">{u.roles?.map((r) => <span key={r} className="badge bg-light text-dark border me-1">{r}</span>)}</td>
+                    <td data-label="Status">{u.blocked
                       ? <span className="badge bg-danger">Blocked</span>
                       : <span className="badge bg-success">Active</span>}</td>
-                    <td className="small text-muted">{u.createdAt?.slice(0, 10)}</td>
-                    <td className="text-end">
+                    <td data-label="Joined" className="small text-muted">{u.createdAt?.slice(0, 10)}</td>
+                    <td data-label="Actions" className="text-end">
                       <div className="d-inline-flex align-items-center gap-2">
-                        <button
-                          className={`btn btn-sm ${u.blocked ? 'btn-outline-success' : 'btn-outline-danger'}`}
-                          onClick={() => toggleBlock(u)}
-                          disabled={u.roles?.includes('ADMIN')}
-                        >
-                          {u.blocked ? 'Unblock' : 'Block'}
-                        </button>
-
-                        <div
-                          className="position-relative d-inline-block"
-                          ref={(node) => {
-                            if (node) menuRefs.current.set(u.id, node);
-                            else menuRefs.current.delete(u.id);
-                          }}
-                        >
+                        {!u.roles?.includes('ADMIN') && (
                           <button
-                            className="btn btn-sm btn-outline-secondary"
-                            title="Edit user"
-                            onClick={() => setMenuOpenId(menuOpenId === u.id ? null : u.id)}
+                            className={`btn btn-sm ${u.blocked ? 'btn-outline-success' : 'btn-outline-danger'}`}
+                            onClick={() => toggleBlock(u)}
                           >
-                            <i className="bi bi-pencil-square me-1" /> Edit
+                            {u.blocked ? 'Unblock' : 'Block'}
                           </button>
-                          {menuOpenId === u.id && (
-                            <div className="user-edit-dropdown">
-                              {Object.entries(FIELD_META).map(([field, meta]) => (
-                                <button key={field} onClick={() => openEdit(u, field)}>
-                                  <i className={`bi ${meta.icon}`} /> Edit {meta.label}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                        )}
+
+                        <button
+                          className="btn btn-sm btn-outline-secondary"
+                          title="Manage user"
+                          onClick={() => setActionUser(u)}
+                        >
+                          <i className="bi bi-pencil-square me-1" /> Manage
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -139,6 +122,12 @@ export default function ManageUsers() {
           </div>
         </div>
       )}
+
+      <UserActionsModal
+        user={actionUser}
+        onClose={() => setActionUser(null)}
+        onSelect={(field) => openEdit(actionUser, field)}
+      />
 
       {modal && (
         <EditUserModal
@@ -153,6 +142,34 @@ export default function ManageUsers() {
   );
 }
 
+function UserActionsModal({ user, onClose, onSelect }) {
+  return (
+    <Modal
+      show={!!user}
+      title="Manage user"
+      subtitle={user ? `${user.name || 'User'} - ${user.email}` : undefined}
+      onClose={onClose}
+      size="sm"
+    >
+      <p className="text-muted small mb-3">Choose the account detail you want to update.</p>
+      <div className="d-grid gap-2">
+        {Object.entries(FIELD_META)
+          .filter(([field]) => (field !== 'role' && field !== 'selfEdit') || !user?.roles?.includes('ADMIN'))
+          .map(([field, meta]) => (
+          <button
+            key={field}
+            type="button"
+            className="btn btn-outline-secondary text-start py-2"
+            onClick={() => onSelect(field)}
+          >
+            <i className={`bi ${meta.icon} me-2`} /> Edit {meta.label}
+          </button>
+        ))}
+      </div>
+    </Modal>
+  );
+}
+
 function EditUserModal({ user, field, onClose, onSaved, onError }) {
   const meta = FIELD_META[field];
   const [name, setName] = useState(user.name || '');
@@ -160,6 +177,7 @@ function EditUserModal({ user, field, onClose, onSaved, onError }) {
   const [email, setEmail] = useState(user.email || '');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [selfEdit, setSelfEdit] = useState(Boolean(user.credentialsSelfEditEnabled));
   const [saving, setSaving] = useState(false);
   const [localError, setLocalError] = useState('');
 
@@ -192,6 +210,13 @@ function EditUserModal({ user, field, onClose, onSaved, onError }) {
         setSaving(true);
         await adminApi.changeUserPassword(user.id, newPassword);
         onSaved(`Password updated for ${user.email}.`);
+      } else if (field === 'selfEdit') {
+        if (selfEdit === Boolean(user.credentialsSelfEditEnabled)) { onClose(); return; }
+        setSaving(true);
+        await adminApi.setSelfEditPermission(user.id, selfEdit);
+        onSaved(selfEdit
+          ? `${user.email} can now change their own email/password directly.`
+          : `${user.email} must now submit a request for email/password changes.`);
       }
     } catch (err) {
       setSaving(false);
@@ -263,6 +288,19 @@ function EditUserModal({ user, field, onClose, onSaved, onError }) {
                 />
               </div>
             </>
+          )}
+
+          {field === 'selfEdit' && (
+            <div className="mb-3">
+              <label className="form-label">Self-edit permission</label>
+              <select className="form-select" value={selfEdit ? 'yes' : 'no'} onChange={(e) => setSelfEdit(e.target.value === 'yes')}>
+                <option value="no">Disabled — changes need my approval</option>
+                <option value="yes">Enabled — user can change directly</option>
+              </select>
+              <div className="form-text">
+                When disabled, email/password changes this user submits go to Credential Requests for review instead of applying immediately.
+              </div>
+            </div>
           )}
 
           <div className="d-flex justify-content-end gap-2 mt-4">

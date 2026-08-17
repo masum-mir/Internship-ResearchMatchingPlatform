@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { notificationApi } from '../../api/notificationApi.js';
 import { apiMessage } from '../../api/axiosClient.js';
 import { enumLabel, timeAgo } from '../../utils/format.js';
+import { notifyNotificationsUpdated } from '../../utils/profileEvents.js';
+import { useAuth } from '../../auth/AuthContext.jsx';
 import Loader from '../../components/Loader.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
 import PageTitle from '../../components/PageTitle.jsx';
@@ -18,11 +20,13 @@ const ICONS = {
   APPLICATION_SUBMITTED: 'bi-file-earmark-person',
   APPLICATION_STATUS_CHANGED: 'bi-file-earmark-check',
   NEW_OPPORTUNITY: 'bi-briefcase',
-  SKILL_ENDORSED: 'bi-patch-check'
+  SKILL_ENDORSED: 'bi-patch-check',
+  CONTENT_REPORTED: 'bi-flag'
 };
 
 export default function Notifications() {
   const navigate = useNavigate();
+  const { role } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,6 +49,12 @@ export default function Notifications() {
     if (item.referenceType === 'POST') return `/feed?post=${item.referenceId}`;
     if (item.referenceType === 'CONVERSATION') return `/messages?conversation=${item.referenceId}`;
     if (item.referenceType === 'CONNECTION') return '/network?tab=requests';
+    if (item.referenceType === 'CONTENT_REPORT') return '/admin/content-reports';
+    // A followed faculty/company posted a new opportunity — students can open
+    // it directly; other roles (who can follow too, but have no browse page
+    // for it) fall back to the feed instead of hitting a 403.
+    if (item.referenceType === 'RESEARCH' && role === 'STUDENT') return `/student/research?opportunity=${item.referenceId}`;
+    if (item.referenceType === 'INTERNSHIP' && role === 'STUDENT') return `/student/internships?opportunity=${item.referenceId}`;
     if (item.type === 'APPLICATION_STATUS_CHANGED') return '/student/applications';
     if (item.type === 'NEW_OPPORTUNITY') return '/feed';
     if (item.actorId) return `/profile/${item.actorId}`;
@@ -53,8 +63,13 @@ export default function Notifications() {
 
   const open = async (item) => {
     if (!item.read) {
-      await notificationApi.markRead(item.id).catch(() => {});
-      setItems((old) => old.map((n) => (n.id === item.id ? { ...n, read: true } : n)));
+      try {
+        await notificationApi.markRead(item.id);
+        setItems((old) => old.map((n) => (n.id === item.id ? { ...n, read: true } : n)));
+        notifyNotificationsUpdated();
+      } catch (e) {
+        setError(apiMessage(e));
+      }
     }
     navigate(destination(item));
   };
@@ -63,6 +78,7 @@ export default function Notifications() {
     try {
       await notificationApi.markAllRead();
       setItems((old) => old.map((n) => ({ ...n, read: true })));
+      notifyNotificationsUpdated();
     } catch (e) {
       setError(apiMessage(e));
     }

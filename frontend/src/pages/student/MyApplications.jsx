@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { applicationApi } from '../../api/applicationApi.js';
 import { apiMessage } from '../../api/axiosClient.js';
 import { resolveUploadUrl } from '../../utils/imageUrl.js';
@@ -13,9 +14,15 @@ import Modal from '../../components/Modal.jsx';
 const FILTERS = ['ALL', 'PENDING', 'SHORTLISTED', 'ACCEPTED', 'REJECTED', 'WITHDRAWN'];
 
 export default function MyApplications() {
+  const location = useLocation();
   const [items, setItems] = useState([]);
-  const [filter, setFilter] = useState('ALL');
+  const [filter, setFilter] = useState(
+    FILTERS.includes(location.state?.filter) ? location.state.filter : 'ALL'
+  );
   const [detail, setDetail] = useState(null);
+  const [withdrawTarget, setWithdrawTarget] = useState(null);
+  const [withdrawReason, setWithdrawReason] = useState('');
+  const [withdrawing, setWithdrawing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState({ type: '', message: '' });
 
@@ -37,13 +44,34 @@ export default function MyApplications() {
   );
 
   const withdraw = async (item) => {
-    if (!window.confirm(`Withdraw your application for “${item.opportunityTitle}”?`)) return;
+    if (item.status === 'ACCEPTED') {
+      setWithdrawTarget(item);
+      setWithdrawReason('');
+      return;
+    }
+    if (!window.confirm(`Withdraw your application for "${item.opportunityTitle}"?`)) return;
     try {
       await applicationApi.withdraw(item.id);
       await load();
       setNotice({ type: 'success', message: 'Application withdrawn.' });
     } catch (e) {
       setNotice({ type: 'danger', message: apiMessage(e) });
+    }
+  };
+
+  const confirmAcceptedWithdraw = async () => {
+    if (!withdrawReason.trim()) return;
+    setWithdrawing(true);
+    try {
+      await applicationApi.withdraw(withdrawTarget.id, withdrawReason.trim());
+      await load();
+      setNotice({ type: 'success', message: 'Application withdrawn — your explanation was sent.' });
+      setWithdrawTarget(null);
+      setWithdrawReason('');
+    } catch (e) {
+      setNotice({ type: 'danger', message: apiMessage(e) });
+    } finally {
+      setWithdrawing(false);
     }
   };
 
@@ -101,7 +129,7 @@ export default function MyApplications() {
                 <button className="btn btn-outline-primary btn-sm" onClick={() => setDetail(item)}>
                   View application
                 </button>
-                {!['ACCEPTED', 'WITHDRAWN'].includes(item.status) && (
+                {item.status !== 'WITHDRAWN' && (
                   <button className="btn btn-outline-danger btn-sm ms-auto" onClick={() => withdraw(item)}>
                     Withdraw
                   </button>
@@ -146,11 +174,65 @@ export default function MyApplications() {
                 <div className="pre-line">{detail.reviewerNote}</div>
               </section>
             )}
+            {detail.withdrawalReason && (
+              <section className="opportunity-detail-section">
+                <h6>Your withdrawal explanation</h6>
+                <div className="pre-line">{detail.withdrawalReason}</div>
+              </section>
+            )}
             {detail.resumeUrl && (
               <a className="btn btn-outline-primary" href={resolveUploadUrl(detail.resumeUrl)} target="_blank" rel="noreferrer">
                 <i className="bi bi-file-earmark-pdf me-1" /> Open submitted resume
               </a>
             )}
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        show={Boolean(withdrawTarget)}
+        title="Withdraw accepted application"
+        onClose={() => { if (!withdrawing) { setWithdrawTarget(null); setWithdrawReason(''); } }}
+      >
+        {withdrawTarget && (
+          <div>
+            <p>
+              You already accepted <strong>{withdrawTarget.opportunityTitle}</strong>. Since you're backing out
+              after accepting, please give the {withdrawTarget.targetType === 'INTERNSHIP' ? 'company' : 'faculty member'} a
+              short explanation — they'll receive it directly.
+            </p>
+            <div className="mb-3">
+              <label className="form-label">Explanation</label>
+              <textarea
+                className="form-control"
+                rows={4}
+                placeholder="e.g. I've accepted another offer that better fits my schedule..."
+                value={withdrawReason}
+                onChange={(e) => setWithdrawReason(e.target.value)}
+                autoFocus
+              />
+              {!withdrawReason.trim() && (
+                <div className="form-text text-danger">An explanation is required to withdraw an accepted application.</div>
+              )}
+            </div>
+            <div className="d-flex justify-content-end gap-2">
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                disabled={withdrawing}
+                onClick={() => { setWithdrawTarget(null); setWithdrawReason(''); }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                disabled={withdrawing || !withdrawReason.trim()}
+                onClick={confirmAcceptedWithdraw}
+              >
+                {withdrawing ? 'Withdrawing…' : 'Withdraw & send explanation'}
+              </button>
+            </div>
           </div>
         )}
       </Modal>

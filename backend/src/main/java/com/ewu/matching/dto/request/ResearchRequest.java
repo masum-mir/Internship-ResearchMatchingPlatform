@@ -5,7 +5,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
@@ -19,7 +19,7 @@ public record ResearchRequest(
         @DecimalMin("0.0") @DecimalMax("4.0") BigDecimal minCgpa,
         String duration,
         @Positive Integer availablePositions,
-        LocalDateTime applicationDeadline,
+        LocalDate applicationDeadline,
         String location,
         WorkMode workMode,
         Boolean funded,

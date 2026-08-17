@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { apiMessage } from '../../api/axiosClient.js';
 import Notice from '../../components/Toast.jsx';
+import OppzyMark from '../../assets/OppzyMark.jsx';
 
 const FEATURES = [
   { icon: 'bi-magic', text: 'Smart matching ranks every opportunity to your skills, CGPA, and department' },
@@ -30,7 +31,7 @@ export default function Login() {
       <div className="auth-brand">
         <div className="auth-brand-inner">
           <div className="brand-logo mb-4" style={{ fontSize: '2.1rem' }}>
-            <span className="brand-mark"><i className="bi bi-mortarboard-fill" /></span> EWU Match
+            <OppzyMark className="brand-mark-img" variant="white" /> Oppzy
           </div>
           <h1>Where talent meets opportunity.</h1>
           <p className="lead opacity-75 mt-3">
@@ -48,27 +49,27 @@ export default function Login() {
       <div className="auth-form">
         <div className="auth-card">
           <div className="d-lg-none brand-logo text-brand mb-4">
-            <span className="brand-mark"><i className="bi bi-mortarboard-fill" /></span> EWU Match
+            <OppzyMark className="brand-mark-img" /> Oppzy
           </div>
-          <h3 className="fw-bold mb-1">Sign in</h3>
+          <h3 className="auth-card-title fw-bold mb-1">Sign in</h3>
           <p className="text-muted mb-4">Welcome back — let’s find your next opportunity.</p>
           <Notice type="danger" message={error} onClose={() => setError('')} />
           <form onSubmit={submit}>
-            <div className="mb-3">
+            <div className="auth-field auth-field-email mb-3">
               <label className="form-label">Email</label>
               <input type="email" className="form-control" required
                 value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             </div>
-            <div className="mb-4">
+            <div className="auth-field auth-field-password mb-4">
               <label className="form-label">Password</label>
               <input type="password" className="form-control" required
                 value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
             </div>
-            <button className="btn btn-brand w-100 py-2" disabled={loading}>
+            <button className="auth-submit btn btn-brand w-100 py-2" disabled={loading}>
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
-          <p className="text-center text-muted mt-4 mb-0">
+          <p className="auth-card-footer text-center text-muted mt-4 mb-0">
             New here? <Link to="/register" className="fw-semibold">Create an account</Link>
           </p>
         </div>

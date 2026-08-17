@@ -115,6 +115,13 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void changePassword(ChangePasswordRequest req) {
         User user = currentUser.currentUser();
+        boolean isAdmin = user.getRoles().stream().anyMatch(r -> r.getName() == RoleType.ADMIN);
+        if (!isAdmin && !user.isCredentialsSelfEditEnabled()) {
+            throw new com.ewu.matching.exception.ForbiddenOperationException(
+                    "Direct password changes are disabled for your account. Submit a change request from the " +
+                            "account menu instead — an admin needs to approve it, unless they've already granted you " +
+                            "self-edit permission.");
+        }
         if (!passwordEncoder.matches(req.currentPassword(), user.getPassword())) {
             throw new BadRequestException("Current password is incorrect");
         }
@@ -139,7 +146,9 @@ public class AuthServiceImpl implements AuthService {
         String accessToken = tokenProvider.generateAccessToken(user.getEmail());
         String refreshToken = createRefreshToken(user);
         Set<RoleType> roles = user.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
-        return AuthResponse.of(accessToken, refreshToken, user.getId(), user.getEmail(), roles);
+        boolean isAdmin = roles.contains(RoleType.ADMIN);
+        boolean credentialsSelfEditEnabled = isAdmin || user.isCredentialsSelfEditEnabled();
+        return AuthResponse.of(accessToken, refreshToken, user.getId(), user.getEmail(), roles, credentialsSelfEditEnabled);
     }
 
     private String createRefreshToken(User user) {

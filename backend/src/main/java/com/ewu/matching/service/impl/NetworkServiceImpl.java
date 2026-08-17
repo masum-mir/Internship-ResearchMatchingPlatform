@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -19,9 +20,12 @@ public class NetworkServiceImpl implements NetworkService {
     private final ConnectionRepository connectionRepository;
     private final UserFollowRepository followRepository;
     private final UserRepository userRepository;
+    private final ConversationRepository conversationRepository;
+    private final MessageRepository messageRepository;
     private final CurrentUserProvider currentUser;
     private final NotificationService notificationService;
     private final ProfileLookupService profileLookup;
+    private final UserVisibilityService userVisibility;
 
     @Override
     @Transactional
@@ -79,7 +83,22 @@ public class NetworkServiceImpl implements NetworkService {
         Connection c = conn(id);
         if (!member(c, me))
             throw new ForbiddenOperationException("Not your connection");
+        Long otherId = c.getRequester().getId().equals(me.getId()) ? c.getAddressee().getId() : c.getRequester().getId();
         connectionRepository.delete(c);
+        // Disconnecting also breaks any follow relationship between the two users in
+        // either direction — otherwise a lingering follow would keep their posts
+        // showing up in each other's home feed even though they're no longer connected.
+        followRepository.findByFollower_IdAndFollowing_Id(me.getId(), otherId)
+                .ifPresent(followRepository::delete);
+        followRepository.findByFollower_IdAndFollowing_Id(otherId, me.getId())
+                .ifPresent(followRepository::delete);
+        // A removed connection also clears the DM thread between the two users —
+        // once disconnected they can no longer message each other, so the old
+        // conversation shouldn't linger in either inbox.
+        conversationRepository.findDirectBetween(me.getId(), otherId).ifPresent(conversation -> {
+            messageRepository.deleteByConversation_Id(conversation.getId());
+            conversationRepository.delete(conversation);
+        });
     }
 
     @Override
@@ -118,6 +137,7 @@ public class NetworkServiceImpl implements NetworkService {
     @Transactional(readOnly = true)
     public List<ConnectionResponse> connections() {
         return connectionRepository.findAcceptedForUser(currentUser.currentUser().getId()).stream().map(this::map)
+                .filter(response -> response != null)
                 .toList();
     }
 
@@ -125,7 +145,14 @@ public class NetworkServiceImpl implements NetworkService {
     @Transactional(readOnly = true)
     public List<ConnectionResponse> pendingReceived() {
         return connectionRepository.findByAddressee_IdAndStatusOrderByRequestedAtDesc(currentUser.currentUser().getId(),
-                ConnectionStatus.PENDING).stream().map(this::map).toList();
+                ConnectionStatus.PENDING).stream().map(this::map).filter(Objects::nonNull).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConnectionResponse> pendingSent() {
+        return connectionRepository.findByRequester_IdAndStatusOrderByRequestedAtDesc(currentUser.currentUser().getId(),
+                ConnectionStatus.PENDING).stream().map(this::map).filter(Objects::nonNull).toList();
     }
 
     @Override
@@ -156,20 +183,21 @@ public class NetworkServiceImpl implements NetworkService {
     @Transactional(readOnly = true)
     public List<FollowResponse> followers() {
         return followRepository.findByFollowing_IdOrderByCreatedAtDesc(currentUser.currentUser().getId()).stream()
-                .map(this::map).toList();
+                .map(this::map).filter(Objects::nonNull).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<FollowResponse> following() {
         return followRepository.findByFollower_IdOrderByCreatedAtDesc(currentUser.currentUser().getId()).stream()
-                .map(this::map).toList();
+                .map(this::map).filter(Objects::nonNull).toList();
     }
 
     private User user(Long id) {
         User u = userRepository.findById(id).orElseThrow(() -> ResourceNotFoundException.of("User", id));
         if (u.isBlocked() || !u.isEnabled())
             throw new BadRequestException("User is unavailable");
+        userVisibility.requirePublicUser(u);
         return u;
     }
 
@@ -179,7 +207,11 @@ public class NetworkServiceImpl implements NetworkService {
     }
 
     private Connection conn(Long id) {
-        return connectionRepository.findById(id).orElseThrow(() -> ResourceNotFoundException.of("Connection", id));
+        Connection connection = connectionRepository.findById(id)
+                .orElseThrow(() -> ResourceNotFoundException.of("Connection", id));
+        if (userVisibility.isAdmin(connection.getRequester()) || userVisibility.isAdmin(connection.getAddressee()))
+            throw new ResourceNotFoundException("Connection not found");
+        return connection;
     }
 
     private boolean member(Connection c, User u) {
@@ -187,13 +219,21 @@ public class NetworkServiceImpl implements NetworkService {
     }
 
     private ConnectionResponse map(Connection c) {
+        if (userVisibility.isAdmin(c.getRequester()) || userVisibility.isAdmin(c.getAddressee()))
+            return null;
         return new ConnectionResponse(c.getId(), c.getRequester().getId(), profileLookup.displayName(c.getRequester()),
-                c.getAddressee().getId(), profileLookup.displayName(c.getAddressee()), c.getStatus(),
-                c.getBlockedBy() == null ? null : c.getBlockedBy().getId(), c.getRequestedAt(), c.getRespondedAt());
+                profileLookup.profilePicture(c.getRequester()), c.getAddressee().getId(),
+                profileLookup.displayName(c.getAddressee()), profileLookup.profilePicture(c.getAddressee()),
+                c.getStatus(), c.getBlockedBy() == null ? null : c.getBlockedBy().getId(),
+                c.getRequestedAt(), c.getRespondedAt());
     }
 
     private FollowResponse map(UserFollow f) {
+        if (userVisibility.isAdmin(f.getFollower()) || userVisibility.isAdmin(f.getFollowing()))
+            return null;
         return new FollowResponse(f.getId(), f.getFollower().getId(), profileLookup.displayName(f.getFollower()),
-                f.getFollowing().getId(), profileLookup.displayName(f.getFollowing()), f.getCreatedAt());
+                profileLookup.profilePicture(f.getFollower()), f.getFollowing().getId(),
+                profileLookup.displayName(f.getFollowing()), profileLookup.profilePicture(f.getFollowing()),
+                f.getCreatedAt());
     }
 }

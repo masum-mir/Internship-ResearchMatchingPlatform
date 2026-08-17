@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { apiMessage } from '../../api/axiosClient.js';
 import Notice from '../../components/Toast.jsx';
+import OppzyMark from '../../assets/OppzyMark.jsx';
 
 const ROLES = [
   { value: 'STUDENT', label: 'Student', icon: 'bi-mortarboard', hint: 'Find internships & research' },
@@ -30,7 +31,7 @@ export default function Register() {
       <div className="auth-brand">
         <div className="auth-brand-inner">
           <div className="brand-logo mb-4" style={{ fontSize: '2.1rem' }}>
-            <span className="brand-mark"><i className="bi bi-mortarboard-fill" /></span> EWU Match
+            <OppzyMark className="brand-mark-img" variant="white" /> Oppzy
           </div>
           <h1>Join your campus network.</h1>
           <p className="lead opacity-75 mt-3">
@@ -42,19 +43,19 @@ export default function Register() {
       <div className="auth-form">
         <div className="auth-card">
           <div className="d-lg-none brand-logo text-brand mb-4">
-            <span className="brand-mark"><i className="bi bi-mortarboard-fill" /></span> EWU Match
+            <OppzyMark className="brand-mark-img" /> Oppzy
           </div>
           <h3 className="fw-bold mb-1">Create your account</h3>
           <p className="text-muted mb-4">It takes less than a minute.</p>
           <Notice type="danger" message={error} onClose={() => setError('')} />
           <form onSubmit={submit}>
             <label className="form-label">I am a</label>
-            <div className="row g-2 mb-3">
+            <div className="auth-role-picker row g-2 mb-3">
               {ROLES.map((r) => (
                 <div className="col-4" key={r.value}>
                   <button type="button"
                     onClick={() => setForm({ ...form, role: r.value })}
-                    className={`btn w-100 h-100 py-2 ${form.role === r.value ? 'btn-brand' : 'btn-outline-secondary'}`}
+                    className={`auth-role-choice btn w-100 h-100 py-2 ${form.role === r.value ? 'btn-brand' : 'btn-outline-secondary'}`}
                     style={{ borderRadius: 12 }}>
                     <i className={`bi ${r.icon} d-block fs-5 mb-1`} />
                     <span className="small fw-semibold">{r.label}</span>

@@ -5,8 +5,10 @@ import { facultyApi, companyApi } from '../api/profileApi.js';
 import { adminApi } from '../api/adminApi.js';
 import { notificationApi } from '../api/notificationApi.js';
 import { useAuth } from '../auth/AuthContext.jsx';
-import { PROFILE_UPDATED_EVENT } from '../utils/profileEvents.js';
+import { useTheme } from '../auth/ThemeContext.jsx';
+import { PROFILE_UPDATED_EVENT, NOTIFICATIONS_UPDATED_EVENT } from '../utils/profileEvents.js';
 import Avatar from './Avatar.jsx';
+import OppzyMark from '../assets/OppzyMark.jsx';
 
 const PROFILE_PATH = {
   STUDENT: '/student/profile',
@@ -30,6 +32,7 @@ function displayName(profile, user, role) {
 
 export default function Navbar({ onToggleSidebar }) {
   const { user, role, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -57,7 +60,11 @@ export default function Navbar({ onToggleSidebar }) {
   useEffect(() => {
     loadUnread();
     const timer = window.setInterval(loadUnread, 30000);
-    return () => window.clearInterval(timer);
+    window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, loadUnread);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, loadUnread);
+    };
   }, [loadUnread]);
 
   useEffect(() => {
@@ -81,6 +88,18 @@ export default function Navbar({ onToggleSidebar }) {
 
   const name = displayName(profile, user, role);
   const image = profile?.profilePicture;
+  const isAdmin = role === 'ADMIN';
+
+  // Admins have no personal photo/initials to show — same generic shield
+  // badge used on the admin sidebar card, just sized for the navbar.
+  const identityBadge = (badgeSize) =>
+    isAdmin ? (
+      <span className="admin-avatar-badge" style={{ width: badgeSize, height: badgeSize, fontSize: badgeSize * 0.5, marginTop: 0 }}>
+        <i className="bi bi-shield-lock-fill" />
+      </span>
+    ) : (
+      <Avatar name={name} image={image} size={badgeSize} />
+    );
 
   return (
     <nav className="li-navbar d-flex align-items-center px-3 px-md-4">
@@ -93,8 +112,8 @@ export default function Navbar({ onToggleSidebar }) {
       </button>
 
       <Link className="navbar-brand brand-logo text-brand mb-0" to="/">
-        <span className="brand-mark"><i className="bi bi-mortarboard-fill" /></span>
-        <span className="d-none d-sm-inline">EWU Match</span>
+        <OppzyMark className="brand-mark-img" />
+        <span className="d-none d-sm-inline">Oppzy</span>
       </Link>
 
       <form className="nav-search-wrap" onSubmit={submitSearch}>
@@ -123,38 +142,56 @@ export default function Navbar({ onToggleSidebar }) {
           )}
         </Link>
 
+        <button
+          type="button"
+          className="theme-toggle-switch"
+          role="switch"
+          aria-checked={isDark}
+          onClick={toggleTheme}
+          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          <i className="bi bi-sun-fill theme-toggle-icon theme-toggle-icon-sun" />
+          <i className="bi bi-moon-stars-fill theme-toggle-icon theme-toggle-icon-moon" />
+          <span className="theme-toggle-thumb" />
+        </button>
+
         <div className="position-relative" ref={menuRef}>
           <button
             className="navbar-profile-button"
             onClick={() => setMenuOpen((open) => !open)}
             type="button"
           >
-            <Avatar name={name} image={image} size={34} />
-            <span className="d-none d-lg-block text-start">
-              <span className="navbar-profile-name">{name}</span>
-              <span className="navbar-profile-role">{role}</span>
-            </span>
+            {identityBadge(34)}
+              <span className="d-none d-lg-block text-start">
+                <span className="navbar-profile-name">{name}</span>
+              <span className="navbar-profile-role">{role === 'ADMIN' ? 'Administrator' : role}</span>
+              </span>
             <i className="bi bi-chevron-down small" />
           </button>
 
           {menuOpen && (
             <div className="profile-menu">
               <div className="px-3 py-3 border-bottom d-flex align-items-center gap-2">
-                <Avatar name={name} image={image} size={46} />
+                {identityBadge(46)}
                 <div className="overflow-hidden">
                   <div className="fw-semibold text-truncate">{name}</div>
                   <div className="text-muted small text-truncate">{user?.email}</div>
                 </div>
               </div>
-              <Link to={PROFILE_PATH[role] || '/feed'} onClick={() => setMenuOpen(false)}>
+              <Link to={isAdmin ? (PROFILE_PATH[role] || '/feed') : `/profile/${user?.userId}`} onClick={() => setMenuOpen(false)}>
                 <i className="bi bi-person" /> My profile
               </Link>
-              <Link to={`/profile/${user?.userId}`} onClick={() => setMenuOpen(false)}>
-                <i className="bi bi-eye" /> View public profile
-              </Link>
-              <Link to="/change-password" onClick={() => setMenuOpen(false)}>
-                <i className="bi bi-key" /> Change password
-              </Link>
+              {!isAdmin && (
+                <>
+                  <Link to="/change-password" onClick={() => setMenuOpen(false)}>
+                    <i className="bi bi-key" /> Change password
+                  </Link>
+                  <Link to="/change-email" onClick={() => setMenuOpen(false)}>
+                    <i className="bi bi-envelope" /> Change email
+                  </Link>
+                </>
+              )}
               <button onClick={handleLogout}>
                 <i className="bi bi-box-arrow-right text-danger" /> Sign out
               </button>

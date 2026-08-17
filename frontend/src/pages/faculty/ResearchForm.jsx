@@ -27,9 +27,9 @@ const EMPTY = {
   targetDepartments: []
 };
 
-function localDateTime(value) {
+function localDate(value) {
   if (!value) return '';
-  return String(value).slice(0, 16);
+  return String(value).slice(0, 10);
 }
 
 function toForm(item) {
@@ -38,7 +38,7 @@ function toForm(item) {
     ...item,
     minCgpa: item.minCgpa ?? '',
     availablePositions: item.availablePositions ?? '',
-    applicationDeadline: localDateTime(item.applicationDeadline),
+    applicationDeadline: localDate(item.applicationDeadline),
     stipendAmount: item.stipendAmount ?? '',
     requiredSkills: (item.requiredSkills || []).map((s) => ({
       name: s.name,
@@ -145,7 +145,7 @@ export default function ResearchForm() {
             </div>
             <div className="col-md-6">
               <label className="form-label">Application deadline</label>
-              <input type="datetime-local" className="form-control" value={form.applicationDeadline} onChange={(e) => setForm({ ...form, applicationDeadline: e.target.value })} />
+              <input type="date" className="form-control" value={form.applicationDeadline} onChange={(e) => setForm({ ...form, applicationDeadline: e.target.value })} />
             </div>
           </div>
         </div>
@@ -209,7 +209,7 @@ export default function ResearchForm() {
         <div className="d-flex justify-content-end gap-2">
           <button type="button" className="btn btn-outline-secondary" onClick={() => navigate('/faculty/research')}>Cancel</button>
           <button className="btn btn-brand" disabled={saving}>
-            {saving ? 'Saving…' : editing ? 'Save changes' : 'Publish research post'}
+            {saving ? 'Saving…' : editing ? 'Save changes' : 'Publish'}
           </button>
         </div>
       </form>

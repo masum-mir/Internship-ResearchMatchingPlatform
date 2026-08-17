@@ -4,6 +4,7 @@ import com.ewu.matching.enums.PostStatus;
 import com.ewu.matching.enums.WorkMode;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -18,7 +19,7 @@ public record ResearchResponse(
         BigDecimal minCgpa,
         String duration,
         Integer availablePositions,
-        LocalDateTime applicationDeadline,
+        LocalDate applicationDeadline,
         String location,
         WorkMode workMode,
         boolean funded,

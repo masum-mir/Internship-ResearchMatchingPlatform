@@ -2,8 +2,11 @@ package com.ewu.matching.controller;
 
 import com.ewu.matching.dto.request.*;
 import com.ewu.matching.dto.response.CommentResponse;
+import com.ewu.matching.dto.response.ContentReportResponse;
 import com.ewu.matching.dto.response.PostResponse;
+import com.ewu.matching.dto.response.PostReactionResponse;
 import com.ewu.matching.enums.ReactionType;
+import com.ewu.matching.service.ContentReportService;
 import com.ewu.matching.service.FileStorageService;
 import com.ewu.matching.service.PostService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +32,7 @@ public class PostController {
 
     private final PostService service;
     private final FileStorageService fileStorageService;
+    private final ContentReportService contentReportService;
 
     @Operation(summary = "Create social post using JSON")
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -129,6 +133,11 @@ public class PostController {
         return ResponseEntity.ok(service.removeReaction(id));
     }
 
+    @GetMapping("/{id}/reactions")
+    public ResponseEntity<List<PostReactionResponse>> reactions(@PathVariable Long id) {
+        return ResponseEntity.ok(service.reactions(id));
+    }
+
     @PostMapping("/{id}/comments")
     public ResponseEntity<CommentResponse> comment(@PathVariable Long id,
                                                    @Valid @RequestBody CommentRequest request) {
@@ -163,6 +172,20 @@ public class PostController {
     public ResponseEntity<Void> unsave(@PathVariable Long id) {
         service.unsave(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Report a post for moderation review")
+    @PostMapping("/{id}/report")
+    public ResponseEntity<ContentReportResponse> report(@PathVariable Long id,
+                                                        @Valid @RequestBody ContentReportRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(contentReportService.reportPost(id, request));
+    }
+
+    @Operation(summary = "Report a comment for moderation review")
+    @PostMapping("/comments/{id}/report")
+    public ResponseEntity<ContentReportResponse> reportComment(@PathVariable Long id,
+                                                                @Valid @RequestBody ContentReportRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(contentReportService.reportComment(id, request));
     }
 
     private boolean hasFile(MultipartFile file) {

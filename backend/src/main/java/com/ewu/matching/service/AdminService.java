@@ -1,12 +1,28 @@
 package com.ewu.matching.service;
 
 import com.ewu.matching.dto.request.*;
+import com.ewu.matching.dto.response.CommentResponse;
+import com.ewu.matching.dto.response.ConversationResponse;
+import com.ewu.matching.dto.response.MessageResponse;
+import com.ewu.matching.dto.response.PostResponse;
 import com.ewu.matching.dto.response.UserResponse;
 import com.ewu.matching.enums.OpportunityType;
 import java.util.List;
 
 public interface AdminService {
     List<UserResponse> listUsers();
+
+    List<PostResponse> listAllPosts();
+
+    PostResponse getSocialPost(Long id);
+
+    // Lets an admin open a reported comment (with its parent post id) even if
+    // it wouldn't otherwise be visible to them under normal post-visibility rules.
+    CommentResponse getComment(Long id);
+
+    List<ConversationResponse> listAllConversations();
+
+    List<MessageResponse> listConversationMessages(Long conversationId);
 
     UserResponse blockUser(Long userId);
 
@@ -27,4 +43,6 @@ public interface AdminService {
     UserResponse changeUserRole(Long userId, ChangeRoleRequest req);
 
     UserResponse changeUserPassword(Long userId, AdminSetPasswordRequest req);
+
+    UserResponse setCredentialsSelfEdit(Long userId, SelfEditPermissionRequest req);
 }

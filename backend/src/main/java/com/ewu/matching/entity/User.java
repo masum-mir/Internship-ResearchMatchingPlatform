@@ -38,6 +38,13 @@ public class User {
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;
 
+    // When false (default), this user cannot change their own email/password
+    // directly — they must submit a CredentialChangeRequest for an admin to
+    // approve. An admin can flip this on to let the user self-serve instead.
+    @Builder.Default
+    @Column(name = "credentials_self_edit_enabled", nullable = false)
+    private boolean credentialsSelfEditEnabled = false;
+
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 

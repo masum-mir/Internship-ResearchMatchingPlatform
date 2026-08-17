@@ -32,8 +32,8 @@ export default function AdminProfile() {
           </div>
           <hr />
           <p className="text-muted mb-0">
-            Admin accounts do not have a dedicated profile-picture row in the current backend.
-            Use the public feed, network, user management and reporting tools from the sidebar.
+            This private administrator account is authorized to manage platform operations,
+            user access, and content moderation. It is not visible to other platform users.
           </p>
         </div>
       )}

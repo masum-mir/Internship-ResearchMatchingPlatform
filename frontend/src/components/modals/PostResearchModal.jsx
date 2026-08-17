@@ -34,13 +34,13 @@ function createEmptyForm() {
   };
 }
 
-function toDateTimeLocal(value) {
+function toDateInput(value) {
   if (!value) return '';
 
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return String(value).slice(0, 16);
+    return String(value).slice(0, 10);
   }
 
   const pad = (number) =>
@@ -51,11 +51,7 @@ function toDateTimeLocal(value) {
     '-',
     pad(date.getMonth() + 1),
     '-',
-    pad(date.getDate()),
-    'T',
-    pad(date.getHours()),
-    ':',
-    pad(date.getMinutes())
+    pad(date.getDate())
   ].join('');
 }
 
@@ -126,7 +122,7 @@ export default function PostResearchModal({
           availablePositions:
             item?.availablePositions ?? '',
           applicationDeadline:
-            toDateTimeLocal(
+            toDateInput(
               item?.applicationDeadline
             ),
           departments: (

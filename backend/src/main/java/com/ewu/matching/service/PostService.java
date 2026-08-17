@@ -23,6 +23,8 @@ public interface PostService {
 
     PostResponse removeReaction(Long id);
 
+    List<PostReactionResponse> reactions(Long id);
+
     CommentResponse comment(Long id, CommentRequest request);
 
     List<CommentResponse> comments(Long id);

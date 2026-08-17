@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -49,7 +50,7 @@ public class ResearchOpportunity {
     private Integer availablePositions;
 
     @Column(name = "application_deadline")
-    private LocalDateTime applicationDeadline;
+    private LocalDate applicationDeadline;
 
     private String duration;
     private String location;

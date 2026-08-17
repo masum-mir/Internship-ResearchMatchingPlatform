@@ -7,6 +7,7 @@ export const networkApi = {
   removeConnection: (id) => client.delete(`/network/connections/${id}`),
   connections: () => client.get('/network/connections').then((r) => r.data),
   pending: () => client.get('/network/connections/pending').then((r) => r.data),
+  pendingSent: () => client.get('/network/connections/pending-sent').then((r) => r.data),
 
   follow: (userId) => client.post('/network/follow', { userId }).then((r) => r.data),
   unfollow: (userId) => client.delete(`/network/follow/${userId}`),

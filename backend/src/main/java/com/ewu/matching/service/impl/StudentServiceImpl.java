@@ -50,6 +50,8 @@ public class StudentServiceImpl implements StudentService {
             s.setStudentId(clean(r.studentId()));
         if (r.department() != null)
             s.setDepartment(clean(r.department()));
+        if (r.university() != null)
+            s.setUniversity(clean(r.university()));
         if (r.batch() != null)
             s.setBatch(clean(r.batch()));
         if (r.cgpa() != null)

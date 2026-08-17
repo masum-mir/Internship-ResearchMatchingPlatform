@@ -7,13 +7,16 @@ import './index.css';
 import './css/SocialPlatform.css';
 import App from './App.jsx';
 import { AuthProvider } from './auth/AuthContext.jsx';
+import { ThemeProvider } from './auth/ThemeContext.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

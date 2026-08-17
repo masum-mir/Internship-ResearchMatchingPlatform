@@ -13,7 +13,7 @@ public final class ProfileMapper {
     public static UserResponse toUserResponse(User u, String name) {
         return new UserResponse(u.getId(), u.getEmail(), name,
                 u.getRoles().stream().map(Role::getName).collect(java.util.stream.Collectors.toSet()),
-                u.isEnabled(), u.isBlocked(), u.getCreatedAt());
+                u.isEnabled(), u.isBlocked(), u.isCredentialsSelfEditEnabled(), u.getCreatedAt());
     }
 
     public static SkillResponse toSkillResponse(Skill s) {

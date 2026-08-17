@@ -12,5 +12,6 @@ public record UserResponse(
         Set<RoleType> roles,
         boolean enabled,
         boolean blocked,
+        boolean credentialsSelfEditEnabled,
         LocalDateTime createdAt
 ) {}

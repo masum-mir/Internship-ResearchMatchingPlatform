@@ -2,6 +2,7 @@ package com.ewu.matching.controller;
 
 import com.ewu.matching.dto.request.ApplicationRequest;
 import com.ewu.matching.dto.request.ApplicationStatusRequest;
+import com.ewu.matching.dto.request.WithdrawalRequest;
 import com.ewu.matching.dto.response.ApplicantResponse;
 import com.ewu.matching.dto.response.ApplicationResponse;
 import com.ewu.matching.security.access.IsCompany;
@@ -61,11 +62,12 @@ public class ApplicationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(applicationService.apply(merged));
     }
 
-    @Operation(summary = "Withdraw one of my applications (STUDENT)")
+    @Operation(summary = "Withdraw one of my applications (STUDENT). An explanation is required if the application had already been accepted.")
     @IsStudent
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> withdraw(@PathVariable Long id) {
-        applicationService.withdraw(id);
+    public ResponseEntity<Void> withdraw(@PathVariable Long id,
+                                          @Valid @RequestBody(required = false) WithdrawalRequest request) {
+        applicationService.withdraw(id, request == null ? null : request.reason());
         return ResponseEntity.noContent().build();
     }
 

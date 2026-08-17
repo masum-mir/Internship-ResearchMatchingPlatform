@@ -8,10 +8,16 @@ import { resolveImageUrl } from '../utils/imageUrl.js';
 import { PROFILE_UPDATED_EVENT } from '../utils/profileEvents.js';
 import Avatar from './Avatar.jsx';
 
+// Admins don't participate in the social feed/network/DMs as a regular
+// member — they get monitoring views instead (see ROLE_MENUS.ADMIN).
 const SHARED = [
   { to: '/feed', label: 'Home', icon: 'bi-house-door-fill' },
   { to: '/network', label: 'My Network', icon: 'bi-people-fill' },
   { to: '/messages', label: 'Messages', icon: 'bi-chat-dots-fill' },
+  { to: '/notifications', label: 'Notifications', icon: 'bi-bell-fill' }
+];
+
+const ADMIN_SHARED = [
   { to: '/notifications', label: 'Notifications', icon: 'bi-bell-fill' }
 ];
 
@@ -24,7 +30,7 @@ const ROLE_MENUS = {
     { to: '/student/applications', label: 'My Applications', icon: 'bi-file-earmark-check-fill' },
     { to: '/student/bookmarks', label: 'Saved Opportunities', icon: 'bi-bookmark-heart-fill' },
     { section: 'Profile' },
-    { to: '/student/profile', label: 'Edit Profile', icon: 'bi-person-vcard-fill' }
+    { to: '/student/profile', label: 'My Profile', icon: 'bi-person-vcard-fill' }
   ],
   COMPANY: [
     { section: 'Recruiting' },
@@ -32,7 +38,7 @@ const ROLE_MENUS = {
     { to: '/company/internships', label: 'My Internships', icon: 'bi-briefcase-fill' },
     { to: '/company/internships/new', label: 'Post Internship', icon: 'bi-plus-square-fill' },
     { section: 'Profile' },
-    { to: '/company/profile', label: 'Company Profile', icon: 'bi-building-fill' }
+    { to: '/company/profile', label: 'My Profile', icon: 'bi-building-fill' }
   ],
   FACULTY: [
     { section: 'Research' },
@@ -40,13 +46,17 @@ const ROLE_MENUS = {
     { to: '/faculty/research', label: 'My Research Posts', icon: 'bi-journal-richtext' },
     { to: '/faculty/research/new', label: 'Post Research', icon: 'bi-plus-square-fill' },
     { section: 'Profile' },
-    { to: '/faculty/profile', label: 'Faculty Profile', icon: 'bi-person-badge-fill' }
+    { to: '/faculty/profile', label: 'My Profile', icon: 'bi-person-badge-fill' }
   ],
   ADMIN: [
     { section: 'Administration' },
     { to: '/admin/dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
     { to: '/admin/users', label: 'Manage Users', icon: 'bi-people-fill' },
-    { to: '/admin/reports', label: 'Reports', icon: 'bi-bar-chart-fill' },
+    { to: '/admin/reports', label: 'Statistics', icon: 'bi-bar-chart-fill' },
+    { section: 'Monitoring' },
+    { to: '/admin/content-reports', label: 'Reported Content', icon: 'bi-flag-fill' },
+    { to: '/admin/credential-requests', label: 'Credential Requests', icon: 'bi-key-fill' },
+    { section: 'Profile' },
     { to: '/admin/profile', label: 'Account', icon: 'bi-person-fill-gear' }
   ]
 };
@@ -60,6 +70,7 @@ async function loadRoleProfile(role) {
 }
 
 function getName(profile, user, role) {
+  if (role === 'ADMIN') return 'Admin';
   if (role === 'COMPANY') return profile?.companyName || user?.email;
   return profile?.name || user?.email;
 }
@@ -92,30 +103,50 @@ export default function Sidebar({ role, open, onNavigate }) {
   const name = useMemo(() => getName(profile, user, role), [profile, user, role]);
   const headline = useMemo(() => getHeadline(profile, role), [profile, role]);
   const coverUrl = resolveImageUrl(profile?.coverPicture);
+  const isAdmin = role === 'ADMIN';
+
+  // Admins get a generic, non-personal card that opens their Account
+  // settings instead of the (mostly empty) public profile page.
+  const profileCardProps = isAdmin
+    ? { to: '/admin/profile', className: 'sidebar-profile-card', onClick: onNavigate }
+    : { to: `/profile/${user?.userId}`, className: 'sidebar-profile-card', onClick: onNavigate };
+
+  // The role-specific "My Profile" edit pages (e.g. /student/profile) are
+  // where you manage your data, but the sidebar link itself should land on
+  // the public profile view — same destination as the profile card above.
+  // Admins keep going straight to their Account settings.
+  const PROFILE_EDIT_ROUTES = ['/student/profile', '/company/profile', '/faculty/profile'];
+  const resolveMenuTarget = (to) =>
+    PROFILE_EDIT_ROUTES.includes(to) ? `/profile/${user?.userId}` : to;
 
   return (
     <aside className={`app-sidebar ${open ? 'sidebar-mobile-open' : ''}`}>
-      <NavLink
-        to={`/profile/${user?.userId}`}
-        className="sidebar-profile-card"
-        onClick={onNavigate}
-      >
+      <NavLink {...profileCardProps}>
         <div
-          className="sidebar-cover"
-          style={{ backgroundImage: coverUrl ? `url("${coverUrl}")` : undefined }}
+          className={`sidebar-cover ${isAdmin ? 'admin-cover' : ''}`}
+          style={{
+            backgroundImage: !isAdmin && coverUrl ? `url("${coverUrl}")` : undefined
+          }}
         />
         <div className="sidebar-profile-body">
-          <Avatar name={name} image={profile?.profilePicture} size={76} ring />
+          {isAdmin ? (
+            <span className="admin-avatar-badge">
+              <i className="bi bi-shield-lock-fill" />
+            </span>
+          ) : (
+            <Avatar name={name} image={profile?.profilePicture} size={76} ring />
+          )}
           <strong>{name}</strong>
-          <span>{headline}</span>
+          <span className="sidebar-profile-headline">{headline}</span>
         </div>
       </NavLink>
 
       <nav className="sidebar-nav">
-        {SHARED.map((item) => (
+        {(role === 'ADMIN' ? ADMIN_SHARED : SHARED).map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
+            end
             onClick={onNavigate}
             className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
           >
@@ -132,7 +163,8 @@ export default function Sidebar({ role, open, onNavigate }) {
           ) : (
             <NavLink
               key={item.to}
-              to={item.to}
+              to={resolveMenuTarget(item.to)}
+              end
               onClick={onNavigate}
               className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
             >

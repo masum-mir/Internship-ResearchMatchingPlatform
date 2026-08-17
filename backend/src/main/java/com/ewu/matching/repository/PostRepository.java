@@ -7,6 +7,8 @@ import java.util.List;
 public interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findTop100ByDeletedFalseOrderByCreatedAtDesc();
 
+    List<Post> findByDeletedFalseOrderByCreatedAtDesc();
+
     List<Post> findByAuthor_IdAndDeletedFalseOrderByCreatedAtDesc(Long authorId);
 
     List<Post> findTop50ByContentContainingIgnoreCaseAndDeletedFalseOrderByCreatedAtDesc(String query);

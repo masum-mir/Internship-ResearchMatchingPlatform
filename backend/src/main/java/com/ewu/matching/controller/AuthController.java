@@ -2,7 +2,9 @@ package com.ewu.matching.controller;
 
 import com.ewu.matching.dto.request.*;
 import com.ewu.matching.dto.response.AuthResponse;
+import com.ewu.matching.dto.response.CredentialChangeRequestResponse;
 import com.ewu.matching.service.AuthService;
+import com.ewu.matching.service.CredentialChangeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -12,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "Authentication", description = "Register, login, token refresh, logout, password change")
 @RestController
 @RequestMapping("/api/auth")
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final CredentialChangeService credentialChangeService;
 
     @Operation(summary = "Register a new STUDENT, FACULTY, or COMPANY account")
     @PostMapping("/register")
@@ -51,5 +56,21 @@ public class AuthController {
     public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(request);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Request an email and/or password change (any non-admin role). Applies immediately " +
+            "if the account has self-edit permission enabled; otherwise creates a request an admin must approve.")
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/credential-change-requests")
+    public ResponseEntity<CredentialChangeRequestResponse> requestCredentialChange(
+            @Valid @RequestBody CredentialChangeRequestPayload request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(credentialChangeService.submit(request));
+    }
+
+    @Operation(summary = "List my own email/password change requests, newest first")
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/credential-change-requests/mine")
+    public ResponseEntity<List<CredentialChangeRequestResponse>> myCredentialChangeRequests() {
+        return ResponseEntity.ok(credentialChangeService.mine());
     }
 }

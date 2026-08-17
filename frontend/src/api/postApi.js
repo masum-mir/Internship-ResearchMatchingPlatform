@@ -24,6 +24,7 @@ export const postApi = {
     client.put(`/posts/${id}/reaction`, { type: reaction }).then((r) => r.data),
   like: (id) => client.put(`/posts/${id}/like`).then((r) => r.data),
   unreact: (id) => client.delete(`/posts/${id}/reaction`).then((r) => r.data),
+  reactions: (id) => client.get(`/posts/${id}/reactions`).then((r) => r.data),
 
   comments: (id) => client.get(`/posts/${id}/comments`).then((r) => r.data),
   comment: (id, content, parentCommentId = null) =>
@@ -32,5 +33,11 @@ export const postApi = {
 
   share: (id, caption = '') => client.post(`/posts/${id}/share`, { caption }),
   save: (id) => client.put(`/posts/${id}/save`),
-  unsave: (id) => client.delete(`/posts/${id}/save`)
+  unsave: (id) => client.delete(`/posts/${id}/save`),
+
+  report: (id, category, details = '') =>
+    client.post(`/posts/${id}/report`, { category, details }).then((r) => r.data),
+
+  reportComment: (id, category, details = '') =>
+    client.post(`/posts/comments/${id}/report`, { category, details }).then((r) => r.data)
 };

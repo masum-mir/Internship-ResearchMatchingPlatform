@@ -5,8 +5,6 @@ import { notifyProfileUpdated } from '../../utils/profileEvents.js';
 import Loader from '../../components/Loader.jsx';
 import Notice from '../../components/Toast.jsx';
 import ProfileHeader from '../../components/ProfileHeader.jsx';
-import ProfessionalSections from '../../components/ProfessionalSections.jsx';
-
 function payload(p) {
   return {
     companyName: p?.companyName || '',
@@ -93,7 +91,8 @@ export default function CompanyProfile() {
         onCoverImageUpload={(e) => upload('coverPicture', e.target.files?.[0])}
         actions={
           <a className="btn btn-outline-primary btn-sm" href={`/profile/${p.userId}`}>
-            View public profile
+            <i className="bi bi-arrow-left me-1" />
+            Back to profile
           </a>
         }
       />
@@ -158,8 +157,6 @@ export default function CompanyProfile() {
           {saving ? 'Saving…' : 'Save company profile'}
         </button>
       </form>
-
-      <ProfessionalSections editable />
     </div>
   );
 }

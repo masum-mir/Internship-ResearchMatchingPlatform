@@ -9,6 +9,7 @@ import PageTitle from '../../components/PageTitle.jsx';
 import UserCard from '../../components/UserCard.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
 import Loader from '../../components/Loader.jsx';
+import Modal from '../../components/Modal.jsx';
 
 const TABS = [
   ['discover', 'Discover', 'bi-search'],
@@ -26,6 +27,7 @@ export default function Network() {
   const [people, setPeople] = useState([]);
   const [connections, setConnections] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [sentRequests, setSentRequests] = useState([]);
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -35,14 +37,16 @@ export default function Network() {
   const loadNetwork = useCallback(async () => {
     setLoading(true);
     try {
-      const [c, r, f1, f2] = await Promise.all([
+      const [c, r, sent, f1, f2] = await Promise.all([
         networkApi.connections(),
         networkApi.pending(),
+        networkApi.pendingSent(),
         networkApi.followers(),
         networkApi.following()
       ]);
       setConnections(c || []);
       setRequests(r || []);
+      setSentRequests(sent || []);
       setFollowers(f1 || []);
       setFollowing(f2 || []);
     } catch (e) {
@@ -92,9 +96,23 @@ export default function Network() {
     return ids;
   }, [connections, user?.userId]);
 
+  const connectionIdByUser = useMemo(() => {
+    const map = new Map();
+    connections.forEach((c) => {
+      const otherId = Number(c.requesterId) === Number(user?.userId) ? c.addresseeId : c.requesterId;
+      map.set(otherId, c.id);
+    });
+    return map;
+  }, [connections, user?.userId]);
+
   const followingIds = useMemo(
     () => new Set(following.map((f) => f.followingId)),
     [following]
+  );
+
+  const sentRequestIds = useMemo(
+    () => new Set(sentRequests.map((r) => r.addresseeId)),
+    [sentRequests]
   );
 
   const perform = async (key, fn, success) => {
@@ -111,6 +129,8 @@ export default function Network() {
     }
   };
 
+  const [confirmAction, setConfirmAction] = useState(null);
+
   const connect = (person) =>
     perform(`connect-${person.userId}`, () => networkApi.connect(person.userId), 'Connection request sent.');
 
@@ -119,6 +139,22 @@ export default function Network() {
 
   const unfollow = (person) =>
     perform(`follow-${person.userId}`, () => networkApi.unfollow(person.userId), `Unfollowed ${person.name}.`);
+
+  const askUnfollow = (person) => setConfirmAction({ kind: 'unfollow', person });
+
+  const askDisconnect = (person, connectionId) =>
+    setConfirmAction({ kind: 'disconnect', person, connectionId });
+
+  const confirmPending = async () => {
+    if (!confirmAction) return;
+    const { kind, person, connectionId } = confirmAction;
+    setConfirmAction(null);
+    if (kind === 'unfollow') {
+      await unfollow(person);
+    } else if (kind === 'disconnect') {
+      await perform(`remove-${connectionId}`, () => networkApi.removeConnection(connectionId), `Removed connection with ${person.name}.`);
+    }
+  };
 
   const message = async (userId) => {
     setActionId(`message-${userId}`);
@@ -136,11 +172,11 @@ export default function Network() {
     setParams(value === 'discover' && query ? { tab: value, q: query } : { tab: value });
   };
 
-  const relationshipPerson = (id, name) => ({
+  const relationshipPerson = (id, name, profilePicture) => ({
     userId: id,
     name,
     headline: '',
-    profilePicture: null
+    profilePicture: profilePicture || null
   });
 
   return (
@@ -207,7 +243,19 @@ export default function Network() {
                     person={person}
                     actions={
                       <>
-                        {!connectionUserIds.has(person.userId) && (
+                        {connectionUserIds.has(person.userId) ? (
+                          <button
+                            className="btn btn-outline-success btn-sm"
+                            disabled={actionId === `remove-${connectionIdByUser.get(person.userId)}`}
+                            onClick={() => askDisconnect(person, connectionIdByUser.get(person.userId))}
+                          >
+                            <i className="bi bi-check2 me-1" /> Connected
+                          </button>
+                        ) : sentRequestIds.has(person.userId) ? (
+                          <button className="btn btn-outline-secondary btn-sm" disabled>
+                            <i className="bi bi-hourglass-split me-1" /> Pending
+                          </button>
+                        ) : (
                           <button
                             className="btn btn-outline-primary btn-sm"
                             disabled={actionId === `connect-${person.userId}`}
@@ -218,11 +266,11 @@ export default function Network() {
                         )}
                         {followingIds.has(person.userId) ? (
                           <button
-                            className="btn btn-outline-secondary btn-sm"
+                            className="btn btn-outline-success btn-sm"
                             disabled={actionId === `follow-${person.userId}`}
-                            onClick={() => unfollow(person)}
+                            onClick={() => askUnfollow(person)}
                           >
-                            Following
+                            <i className="bi bi-check2 me-1" /> Following
                           </button>
                         ) : (
                           <button
@@ -235,7 +283,8 @@ export default function Network() {
                         )}
                         <button
                           className="btn btn-light btn-sm"
-                          disabled={actionId === `message-${person.userId}`}
+                          disabled={actionId === `message-${person.userId}` || !connectionUserIds.has(person.userId)}
+                          title={connectionUserIds.has(person.userId) ? 'Message' : 'Connect with this person to message them'}
                           onClick={() => message(person.userId)}
                         >
                           <i className="bi bi-chat-dots" />
@@ -256,18 +305,20 @@ export default function Network() {
           ) : (
             <div className="relationship-list">
               {connections.map((c) => {
-                const otherId = Number(c.requesterId) === Number(user?.userId) ? c.addresseeId : c.requesterId;
-                const otherName = Number(c.requesterId) === Number(user?.userId) ? c.addresseeName : c.requesterName;
+                const isRequester = Number(c.requesterId) === Number(user?.userId);
+                const otherId = isRequester ? c.addresseeId : c.requesterId;
+                const otherName = isRequester ? c.addresseeName : c.requesterName;
+                const otherPhoto = isRequester ? c.addresseePhoto : c.requesterPhoto;
                 return (
                   <div className="relationship-row" key={c.id}>
-                    <UserCard compact person={relationshipPerson(otherId, otherName)} />
+                    <UserCard compact person={relationshipPerson(otherId, otherName, otherPhoto)} />
                     <div className="d-flex gap-2">
                       <button className="btn btn-outline-primary btn-sm" onClick={() => message(otherId)}>
                         Message
                       </button>
                       <button
                         className="btn btn-outline-danger btn-sm"
-                        onClick={() => perform(`remove-${c.id}`, () => networkApi.removeConnection(c.id), 'Connection removed.')}
+                        onClick={() => askDisconnect(relationshipPerson(otherId, otherName, otherPhoto), c.id)}
                       >
                         Remove
                       </button>
@@ -288,7 +339,7 @@ export default function Network() {
             <div className="relationship-list">
               {requests.map((r) => (
                 <div className="relationship-row" key={r.id}>
-                  <UserCard compact person={relationshipPerson(r.requesterId, r.requesterName)} />
+                  <UserCard compact person={relationshipPerson(r.requesterId, r.requesterName, r.requesterPhoto)} />
                   <div className="d-flex gap-2">
                     <button
                       className="btn btn-brand btn-sm"
@@ -318,7 +369,7 @@ export default function Network() {
             <div className="relationship-list">
               {followers.map((f) => (
                 <div className="relationship-row" key={f.id}>
-                  <UserCard compact person={relationshipPerson(f.followerId, f.followerName)} />
+                  <UserCard compact person={relationshipPerson(f.followerId, f.followerName, f.followerPhoto)} />
                   <Link className="btn btn-outline-primary btn-sm" to={`/profile/${f.followerId}`}>
                     View profile
                   </Link>
@@ -337,10 +388,10 @@ export default function Network() {
             <div className="relationship-list">
               {following.map((f) => (
                 <div className="relationship-row" key={f.id}>
-                  <UserCard compact person={relationshipPerson(f.followingId, f.followingName)} />
+                  <UserCard compact person={relationshipPerson(f.followingId, f.followingName, f.followingPhoto)} />
                   <button
                     className="btn btn-outline-secondary btn-sm"
-                    onClick={() => perform(`unfollow-${f.id}`, () => networkApi.unfollow(f.followingId), 'Unfollowed.')}
+                    onClick={() => askUnfollow(relationshipPerson(f.followingId, f.followingName, f.followingPhoto))}
                   >
                     Unfollow
                   </button>
@@ -350,6 +401,30 @@ export default function Network() {
           )}
         </div>
       )}
+
+      <Modal
+        show={Boolean(confirmAction)}
+        title={confirmAction?.kind === 'disconnect' ? 'Remove connection' : 'Unfollow'}
+        onClose={() => setConfirmAction(null)}
+      >
+        {confirmAction && (
+          <div>
+            <p>
+              {confirmAction.kind === 'disconnect'
+                ? `Remove your connection with ${confirmAction.person.name}? You'll need to send a new request to reconnect.`
+                : `Unfollow ${confirmAction.person.name}? You'll stop seeing their posts in your feed.`}
+            </p>
+            <div className="d-flex justify-content-end gap-2">
+              <button type="button" className="btn btn-outline-secondary" onClick={() => setConfirmAction(null)}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn-danger" onClick={confirmPending}>
+                {confirmAction.kind === 'disconnect' ? 'Remove connection' : 'Unfollow'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

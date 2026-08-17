@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { enumLabel, formatDate, formatMoney, joinNonEmpty } from '../utils/format.js';
+import { enumLabel, formatDate, formatMoney, isOpportunityClosed, joinNonEmpty } from '../utils/format.js';
 import MatchScoreBadge from './MatchScoreBadge.jsx';
 import SkillChips from './SkillChips.jsx';
 
@@ -15,9 +15,11 @@ export default function OpportunityCard({
   onApply,
   onBookmark,
   bookmarked = false,
+  applied = false,
   ownerActions
 }) {
   const isResearch = type === 'RESEARCH';
+  const closed = isOpportunityClosed(opportunity);
   const title = isResearch ? opportunity.topic : opportunity.title;
   const owner = isResearch ? opportunity.facultyName : opportunity.companyName;
   const ownerUserId = isResearch ? opportunity.facultyUserId : opportunity.companyUserId;
@@ -107,9 +109,19 @@ export default function OpportunityCard({
           </button>
         )}
         {onApply && (
-          <button type="button" className="btn btn-brand btn-sm" onClick={onApply}>
-            Apply
-          </button>
+          applied ? (
+            <button type="button" className="btn btn-outline-success btn-sm" disabled>
+              <i className="bi bi-check2-circle me-1" /> Applied
+            </button>
+          ) : closed ? (
+            <button type="button" className="btn btn-outline-secondary btn-sm" disabled title="This opportunity is no longer accepting applications">
+              Closed
+            </button>
+          ) : (
+            <button type="button" className="btn btn-brand btn-sm" onClick={onApply}>
+              Apply
+            </button>
+          )
         )}
         {onBookmark && (
           <button
