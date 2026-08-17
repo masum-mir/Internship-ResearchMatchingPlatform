@@ -146,20 +146,20 @@ mysql:3306
 ### Student Dashboard
 
 <p align="center">
-  <img src="img/student-dashboard.png" alt="Oppzy Student Dashboard" width="850">
+  <img src="img/home.png" alt="Oppzy Student Dashboard" width="850">
 </p>
 
 ---
 
 ## Faculty Information
- 
-**Course**: CSE347 - Information System Analysis and Design
-**Section**: 08
-**Instructor**: Sanzana Karim Lora, Lecturer, Dept of CSE
-**Institution**: East West University
-**Email:** `sanzana.lora@ewubd.edu`
-**Submission Date**: Augest 17, 2026
- 
+ ```text
+Course: CSE347 - Information System Analysis and Design
+Section: 08
+Instructor: Sanzana Karim Lora, Lecturer, Dept of CSE
+Institution: East West University
+Email: `sanzana.lora@ewubd.edu`
+Submission Date: Augest 17, 2026
+``` 
 
 ---
 
