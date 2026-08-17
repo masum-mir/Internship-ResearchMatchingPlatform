@@ -5,8 +5,10 @@ import { facultyApi, companyApi } from '../api/profileApi.js';
 import { adminApi } from '../api/adminApi.js';
 import { notificationApi } from '../api/notificationApi.js';
 import { useAuth } from '../auth/AuthContext.jsx';
+import { useTheme } from '../auth/ThemeContext.jsx';
 import { PROFILE_UPDATED_EVENT, NOTIFICATIONS_UPDATED_EVENT } from '../utils/profileEvents.js';
 import Avatar from './Avatar.jsx';
+import OppzyMark from '../assets/OppzyMark.jsx';
 
 const PROFILE_PATH = {
   STUDENT: '/student/profile',
@@ -30,6 +32,7 @@ function displayName(profile, user, role) {
 
 export default function Navbar({ onToggleSidebar }) {
   const { user, role, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -109,8 +112,8 @@ export default function Navbar({ onToggleSidebar }) {
       </button>
 
       <Link className="navbar-brand brand-logo text-brand mb-0" to="/">
-        <span className="brand-mark"><i className="bi bi-mortarboard-fill" /></span>
-        <span className="d-none d-sm-inline">EWU Match</span>
+        <OppzyMark className="brand-mark-img" />
+        <span className="d-none d-sm-inline">Oppzy</span>
       </Link>
 
       <form className="nav-search-wrap" onSubmit={submitSearch}>
@@ -139,6 +142,20 @@ export default function Navbar({ onToggleSidebar }) {
           )}
         </Link>
 
+        <button
+          type="button"
+          className="theme-toggle-switch"
+          role="switch"
+          aria-checked={isDark}
+          onClick={toggleTheme}
+          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          <i className="bi bi-sun-fill theme-toggle-icon theme-toggle-icon-sun" />
+          <i className="bi bi-moon-stars-fill theme-toggle-icon theme-toggle-icon-moon" />
+          <span className="theme-toggle-thumb" />
+        </button>
+
         <div className="position-relative" ref={menuRef}>
           <button
             className="navbar-profile-button"
@@ -162,17 +179,19 @@ export default function Navbar({ onToggleSidebar }) {
                   <div className="text-muted small text-truncate">{user?.email}</div>
                 </div>
               </div>
-              <Link to={PROFILE_PATH[role] || '/feed'} onClick={() => setMenuOpen(false)}>
+              <Link to={isAdmin ? (PROFILE_PATH[role] || '/feed') : `/profile/${user?.userId}`} onClick={() => setMenuOpen(false)}>
                 <i className="bi bi-person" /> My profile
               </Link>
               {!isAdmin && (
-                <Link to={`/profile/${user?.userId}`} onClick={() => setMenuOpen(false)}>
-                  <i className="bi bi-eye" /> View public profile
-                </Link>
+                <>
+                  <Link to="/change-password" onClick={() => setMenuOpen(false)}>
+                    <i className="bi bi-key" /> Change password
+                  </Link>
+                  <Link to="/change-email" onClick={() => setMenuOpen(false)}>
+                    <i className="bi bi-envelope" /> Change email
+                  </Link>
+                </>
               )}
-              <Link to="/change-password" onClick={() => setMenuOpen(false)}>
-                <i className="bi bi-key" /> Change password
-              </Link>
               <button onClick={handleLogout}>
                 <i className="bi bi-box-arrow-right text-danger" /> Sign out
               </button>

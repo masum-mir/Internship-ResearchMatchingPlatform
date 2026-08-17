@@ -63,7 +63,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             ResearchOpportunity x = researchRepository.findWithDetailsById(r.targetId())
                     .orElseThrow(() -> ResourceNotFoundException.of("Research opportunity", r.targetId()));
             if (x.getStatus() != PostStatus.ACTIVE
-                    || (x.getApplicationDeadline() != null && x.getApplicationDeadline().isBefore(LocalDateTime.now())))
+                    || (x.getApplicationDeadline() != null && x.getApplicationDeadline().isBefore(LocalDate.now())))
                 throw new BadRequestException("This research post is not accepting applications");
             a.setResearch(x);
             a.setMatchScore(matchingEngine.score(s, x.getRequiredSkills(), x.getMinCgpa(), x.getTargetDepartments())

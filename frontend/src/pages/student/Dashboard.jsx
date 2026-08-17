@@ -56,6 +56,7 @@ function ApplicationStatusBadge({ status }) {
 
 function getApplicationTitle(app) {
   return (
+    app.opportunityTitle ||
     app.targetTitle ||
     app.title ||
     app.internship?.title ||
@@ -114,6 +115,8 @@ export default function StudentDashboard() {
   const [matchesLoading, setMatchesLoading] = useState(true);
   const [matchesError, setMatchesError] = useState('');
 
+  const [bookmarks, setBookmarks] = useState([]);
+
   const [notice, setNotice] = useState({ type: '', message: '' });
   const [detailItem, setDetailItem] = useState(null); // { type, opportunity }
 
@@ -139,6 +142,17 @@ export default function StudentDashboard() {
       })
       .catch((e) => setMatchesError(apiMessage(e)))
       .finally(() => setMatchesLoading(false));
+  }, []);
+
+  const loadBookmarks = () => {
+    bookmarkApi
+      .mine()
+      .then((list) => setBookmarks(Array.isArray(list) ? list : list?.data || []))
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    loadBookmarks();
   }, []);
 
   // Top 3 best-fit posts across both internships and research, by match score.
@@ -190,19 +204,55 @@ export default function StudentDashboard() {
     return ids;
   }, [applications]);
 
+  // Opportunities already bookmarked, so the bookmark button reflects saved
+  // state instead of erroring every time it's clicked again.
+  const bookmarkedIds = useMemo(() => {
+    const ids = new Set();
+    bookmarks.forEach((b) => ids.add(`${b.targetType}-${b.opportunityId}`));
+    return ids;
+  }, [bookmarks]);
+
+  // Dashboard preview should show one row per opportunity (its most recent
+  // application), not every historical apply/withdraw record for the same job.
+  const dashboardApplications = useMemo(() => {
+    const latestByOpportunity = new Map();
+    applications.forEach((app) => {
+      const key = `${app.targetType}-${app.opportunityId}`;
+      const existing = latestByOpportunity.get(key);
+      const appTime = new Date(app.appliedAt || app.updatedAt || 0).getTime();
+      const existingTime = existing
+        ? new Date(existing.appliedAt || existing.updatedAt || 0).getTime()
+        : -Infinity;
+      if (!existing || appTime >= existingTime) {
+        latestByOpportunity.set(key, app);
+      }
+    });
+    return Array.from(latestByOpportunity.values()).sort((a, b) => {
+      const bTime = new Date(b.appliedAt || b.updatedAt || 0).getTime();
+      const aTime = new Date(a.appliedAt || a.updatedAt || 0).getTime();
+      return bTime - aTime;
+    });
+  }, [applications]);
+
   const apply = async (type, id) => {
     try {
       await applicationApi.apply({ targetType: type, targetId: id });
       setNotice({ type: 'success', message: 'Application submitted.' });
+      applicationApi
+        .mine()
+        .then((list) => setApplications(Array.isArray(list) ? list : list?.data || []))
+        .catch(() => {});
     } catch (e) {
       setNotice({ type: 'danger', message: apiMessage(e) });
     }
   };
 
   const bookmark = async (type, id) => {
+    if (bookmarkedIds.has(`${type}-${id}`)) return;
     try {
       await bookmarkApi.add({ targetType: type, targetId: id });
       setNotice({ type: 'success', message: 'Bookmarked.' });
+      loadBookmarks();
     } catch (e) {
       setNotice({ type: 'danger', message: apiMessage(e) });
     }
@@ -267,7 +317,7 @@ export default function StudentDashboard() {
               <div className="card border-0 shadow-sm h-100">
                 <div className="card-body">
                   <h5 className="card-title mb-3">
-                     Recommended for you
+                     Recommended For You
                   </h5>
 
                   {matchesError && <Notice type="danger" message={matchesError} />}
@@ -320,10 +370,12 @@ export default function StudentDashboard() {
                               </button>
                             )}
                             <button
-                              className="btn btn-sm btn-outline-secondary"
+                              className={`btn btn-sm ${bookmarkedIds.has(`${item.type}-${item.id}`) ? 'btn-secondary' : 'btn-outline-secondary'}`}
+                              disabled={bookmarkedIds.has(`${item.type}-${item.id}`)}
                               onClick={(e) => { e.stopPropagation(); bookmark(item.type, item.id); }}
+                              title={bookmarkedIds.has(`${item.type}-${item.id}`) ? 'Already saved' : 'Save for later'}
                             >
-                              <i className="bi bi-bookmark" />
+                              <i className={`bi ${bookmarkedIds.has(`${item.type}-${item.id}`) ? 'bi-bookmark-fill' : 'bi-bookmark'}`} />
                             </button>
                           </div>
                         </div>
@@ -339,7 +391,7 @@ export default function StudentDashboard() {
               <div className="card border-0 shadow-sm h-100">
                 <div className="card-body">
                   <h5 className="card-title mb-3">
-                     Upcoming deadlines
+                     Upcoming Deadlines
                   </h5>
 
                   {matchesLoading ? (
@@ -351,11 +403,11 @@ export default function StudentDashboard() {
                       message="Matched internships with a deadline will show up here."
                     />
                   ) : (
-                    <div className="list-group list-group-flush">
+                    <div className="d-flex flex-column gap-3">
                       {upcomingDeadlines.map((item) => (
                         <div
                           key={item.id}
-                          className="list-group-item d-flex justify-content-between align-items-center px-0 dashboard-row-clickable"
+                          className="d-flex justify-content-between align-items-center border rounded p-2 dashboard-row-clickable"
                           role="button"
                           tabIndex={0}
                           onClick={() => openDetail('INTERNSHIP', item.id)}
@@ -390,18 +442,18 @@ export default function StudentDashboard() {
 
               {appsLoading ? (
                 <Loader />
-              ) : applications.length === 0 ? (
+              ) : dashboardApplications.length === 0 ? (
                 <EmptyState
                   icon="bi-file-earmark-text"
                   title="No applications yet"
                   message="Apply to internships or research posts to see them here."
                 />
               ) : (
-                <div className="list-group list-group-flush">
-                  {applications.map((app) => (
+                <div className="d-flex flex-column gap-3">
+                  {dashboardApplications.slice(0, 5).map((app) => (
                     <div
                       key={app.id}
-                      className="list-group-item d-flex justify-content-between align-items-center px-0 dashboard-row-clickable"
+                      className="d-flex justify-content-between align-items-center border rounded p-2 dashboard-row-clickable"
                       role="button"
                       tabIndex={0}
                       onClick={() => navigate('/student/applications')}

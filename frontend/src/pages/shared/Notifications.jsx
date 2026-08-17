@@ -4,6 +4,7 @@ import { notificationApi } from '../../api/notificationApi.js';
 import { apiMessage } from '../../api/axiosClient.js';
 import { enumLabel, timeAgo } from '../../utils/format.js';
 import { notifyNotificationsUpdated } from '../../utils/profileEvents.js';
+import { useAuth } from '../../auth/AuthContext.jsx';
 import Loader from '../../components/Loader.jsx';
 import EmptyState from '../../components/EmptyState.jsx';
 import PageTitle from '../../components/PageTitle.jsx';
@@ -25,6 +26,7 @@ const ICONS = {
 
 export default function Notifications() {
   const navigate = useNavigate();
+  const { role } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -48,6 +50,11 @@ export default function Notifications() {
     if (item.referenceType === 'CONVERSATION') return `/messages?conversation=${item.referenceId}`;
     if (item.referenceType === 'CONNECTION') return '/network?tab=requests';
     if (item.referenceType === 'CONTENT_REPORT') return '/admin/content-reports';
+    // A followed faculty/company posted a new opportunity — students can open
+    // it directly; other roles (who can follow too, but have no browse page
+    // for it) fall back to the feed instead of hitting a 403.
+    if (item.referenceType === 'RESEARCH' && role === 'STUDENT') return `/student/research?opportunity=${item.referenceId}`;
+    if (item.referenceType === 'INTERNSHIP' && role === 'STUDENT') return `/student/internships?opportunity=${item.referenceId}`;
     if (item.type === 'APPLICATION_STATUS_CHANGED') return '/student/applications';
     if (item.type === 'NEW_OPPORTUNITY') return '/feed';
     if (item.actorId) return `/profile/${item.actorId}`;

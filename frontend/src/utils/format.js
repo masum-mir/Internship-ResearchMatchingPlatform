@@ -56,8 +56,8 @@ export function joinNonEmpty(values, separator = ' • ') {
 
 // Mirrors the backend's own "accepting applications" check (ApplicationServiceImpl):
 // an opportunity stops accepting applications once its status is no longer ACTIVE,
-// or its deadline has passed. Internships use `deadline` (date-only) and research
-// posts use `applicationDeadline` (date-time), so we accept either field name.
+// or its deadline has passed. Internships use `deadline` and research posts use
+// `applicationDeadline` (both date-only), so we accept either field name.
 export function isOpportunityClosed(opportunity) {
   if (!opportunity) return false;
   if (opportunity.status && opportunity.status !== 'ACTIVE') return true;

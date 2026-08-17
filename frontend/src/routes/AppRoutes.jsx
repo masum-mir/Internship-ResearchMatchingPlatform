@@ -43,6 +43,7 @@ import AdminProfile from '../pages/admin/Profile.jsx';
 import ManageUsers from '../pages/admin/ManageUsers.jsx';
 import Reports from '../pages/admin/Reports.jsx';
 import ContentReports from '../pages/admin/ContentReports.jsx';
+import CredentialRequests from '../pages/admin/CredentialRequests.jsx';
 
 function HomeRedirect() {
   const { isAuthenticated, role } = useAuth();
@@ -66,7 +67,8 @@ export default function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/" element={<HomeRedirect />} />
-          <Route path="/change-password" element={<ChangePassword />} />
+          <Route path="/change-password" element={<ChangePassword section="password" />} />
+          <Route path="/change-email" element={<ChangePassword section="email" />} />
 
           {/* Shared professional/social features for every authenticated account. */}
           <Route path="/feed" element={<Feed />} />
@@ -118,6 +120,7 @@ export default function AppRoutes() {
             <Route path="/admin/users" element={<ManageUsers />} />
             <Route path="/admin/reports" element={<Reports />} />
             <Route path="/admin/content-reports" element={<ContentReports />} />
+            <Route path="/admin/credential-requests" element={<CredentialRequests />} />
           </Route>
         </Route>
       </Route>

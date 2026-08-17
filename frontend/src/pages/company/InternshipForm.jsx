@@ -263,7 +263,7 @@ export default function InternshipForm() {
             Cancel
           </button>
           <button className="btn btn-brand" disabled={saving}>
-            {saving ? 'Saving…' : editing ? 'Save changes' : 'Publish internship'}
+            {saving ? 'Saving…' : editing ? 'Save changes' : 'Publish'}
           </button>
         </div>
       </form>

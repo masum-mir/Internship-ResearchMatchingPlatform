@@ -85,8 +85,8 @@ public class StudentController {
                 profileUrl,
                 coverUrl,
                 resumeUrl,
-                request.portfolioUrl(),
                 request.university(),
+                request.portfolioUrl(),
                 request.githubUrl(),
                 request.linkedinUrl(),
                 request.openToWork()

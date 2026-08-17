@@ -25,5 +25,13 @@ export const adminApi = {
   contentReports: (status = 'PENDING') =>
     client.get('/admin/content-reports', { params: { status } }).then((r) => r.data),
   resolveContentReport: (id) => client.put(`/admin/content-reports/${id}/resolve`).then((r) => r.data),
-  dismissContentReport: (id) => client.put(`/admin/content-reports/${id}/dismiss`).then((r) => r.data)
+  dismissContentReport: (id) => client.put(`/admin/content-reports/${id}/dismiss`).then((r) => r.data),
+
+  // Email/password change requests submitted by users whose accounts don't
+  // have self-edit permission — an admin has to approve or reject them.
+  credentialChangeRequests: (status = 'PENDING') =>
+    client.get('/admin/credential-change-requests', { params: { status } }).then((r) => r.data),
+  approveCredentialChangeRequest: (id) => client.put(`/admin/credential-change-requests/${id}/approve`).then((r) => r.data),
+  rejectCredentialChangeRequest: (id) => client.put(`/admin/credential-change-requests/${id}/reject`).then((r) => r.data),
+  setSelfEditPermission: (id, enabled) => client.put(`/admin/users/${id}/self-edit-permission`, { enabled }).then((r) => r.data)
 };

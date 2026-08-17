@@ -316,10 +316,32 @@ export default function PublicProfile() {
     }
   };
 
+  const EDIT_PROFILE_PATH = {
+    STUDENT: '/student/profile',
+    COMPANY: '/company/profile',
+    FACULTY: '/faculty/profile',
+    ADMIN: '/admin/profile'
+  };
+
   const actions = useMemo(() => {
+    // Viewing your own profile: offer a way to edit it instead of the
+    // social actions (Connect/Follow/Message/Block) meant for other users.
+    if (mine) {
+      return (
+        <button
+          type="button"
+          className="btn btn-outline-primary btn-sm"
+          onClick={() => navigate(EDIT_PROFILE_PATH[viewerRole] || '/feed')}
+        >
+          <i className="bi bi-pencil me-1" />
+          Edit profile
+        </button>
+      );
+    }
+
     // Admins land here only to review a reported user, not to socialize with
     // them — no Connect/Follow/Message/Block actions for that account.
-    if (mine || !p?.userId || viewerRole === 'ADMIN') return null;
+    if (!p?.userId || viewerRole === 'ADMIN') return null;
 
     return (
       <div className="d-flex flex-wrap gap-2">
@@ -893,8 +915,6 @@ function CompanyProfileSections({ value, userId }) {
           <div className="text-muted">No website added.</div>
         )}
       </section>
-
-      <ProfessionalSections userId={userId} editable={false} />
     </>
   );
 }

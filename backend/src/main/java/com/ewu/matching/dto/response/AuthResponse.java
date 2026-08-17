@@ -10,10 +10,11 @@ public record AuthResponse(
         String tokenType,
         Long userId,
         String email,
-        Set<RoleType> roles
+        Set<RoleType> roles,
+        boolean credentialsSelfEditEnabled
 ) {
     public static AuthResponse of(String access, String refresh, Long userId,
-                                  String email, Set<RoleType> roles) {
-        return new AuthResponse(access, refresh, "Bearer", userId, email, roles);
+                                  String email, Set<RoleType> roles, boolean credentialsSelfEditEnabled) {
+        return new AuthResponse(access, refresh, "Bearer", userId, email, roles, credentialsSelfEditEnabled);
     }
 }

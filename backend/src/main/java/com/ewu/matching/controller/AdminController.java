@@ -5,9 +5,11 @@ import com.ewu.matching.dto.request.AdminSetPasswordRequest;
 import com.ewu.matching.dto.request.ChangeEmailRequest;
 import com.ewu.matching.dto.request.ChangeNameRequest;
 import com.ewu.matching.dto.request.ChangeRoleRequest;
+import com.ewu.matching.dto.request.SelfEditPermissionRequest;
 import com.ewu.matching.dto.response.CommentResponse;
 import com.ewu.matching.dto.response.ContentReportResponse;
 import com.ewu.matching.dto.response.ConversationResponse;
+import com.ewu.matching.dto.response.CredentialChangeRequestResponse;
 import com.ewu.matching.dto.response.MessageResponse;
 import com.ewu.matching.dto.response.PostResponse;
 import com.ewu.matching.dto.response.ReportResponse;
@@ -16,6 +18,7 @@ import com.ewu.matching.enums.OpportunityType;
 import com.ewu.matching.security.access.IsAdmin;
 import com.ewu.matching.service.AdminService;
 import com.ewu.matching.service.ContentReportService;
+import com.ewu.matching.service.CredentialChangeService;
 import com.ewu.matching.service.FileStorageService;
 import com.ewu.matching.service.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,6 +44,7 @@ public class AdminController {
     private final AdminService adminService;
     private final ReportService reportService;
     private final ContentReportService contentReportService;
+    private final CredentialChangeService credentialChangeService;
     private final FileStorageService fileStorageService;
 
     @Operation(summary = "Get my admin profile")
@@ -183,5 +187,31 @@ public class AdminController {
     @PutMapping("/content-reports/{id}/dismiss")
     public ResponseEntity<ContentReportResponse> dismissContentReport(@PathVariable Long id) {
         return ResponseEntity.ok(contentReportService.dismiss(id));
+    }
+
+    @Operation(summary = "Allow or block a user from changing their own email/password directly (ADMIN)")
+    @PutMapping("/users/{id}/self-edit-permission")
+    public ResponseEntity<UserResponse> setCredentialsSelfEdit(@PathVariable Long id,
+            @Valid @RequestBody SelfEditPermissionRequest request) {
+        return ResponseEntity.ok(adminService.setCredentialsSelfEdit(id, request));
+    }
+
+    @Operation(summary = "List email/password change requests awaiting admin review, optionally filtered by status (ADMIN)")
+    @GetMapping("/credential-change-requests")
+    public ResponseEntity<List<CredentialChangeRequestResponse>> credentialChangeRequests(
+            @RequestParam(required = false) String status) {
+        return ResponseEntity.ok(credentialChangeService.list(status));
+    }
+
+    @Operation(summary = "Approve a pending credential change request, applying it (ADMIN)")
+    @PutMapping("/credential-change-requests/{id}/approve")
+    public ResponseEntity<CredentialChangeRequestResponse> approveCredentialChangeRequest(@PathVariable Long id) {
+        return ResponseEntity.ok(credentialChangeService.approve(id));
+    }
+
+    @Operation(summary = "Reject a pending credential change request (ADMIN)")
+    @PutMapping("/credential-change-requests/{id}/reject")
+    public ResponseEntity<CredentialChangeRequestResponse> rejectCredentialChangeRequest(@PathVariable Long id) {
+        return ResponseEntity.ok(credentialChangeService.reject(id));
     }
 }

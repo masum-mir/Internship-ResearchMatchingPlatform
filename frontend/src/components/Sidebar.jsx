@@ -30,7 +30,7 @@ const ROLE_MENUS = {
     { to: '/student/applications', label: 'My Applications', icon: 'bi-file-earmark-check-fill' },
     { to: '/student/bookmarks', label: 'Saved Opportunities', icon: 'bi-bookmark-heart-fill' },
     { section: 'Profile' },
-    { to: '/student/profile', label: 'Edit Profile', icon: 'bi-person-vcard-fill' }
+    { to: '/student/profile', label: 'My Profile', icon: 'bi-person-vcard-fill' }
   ],
   COMPANY: [
     { section: 'Recruiting' },
@@ -55,6 +55,7 @@ const ROLE_MENUS = {
     { to: '/admin/reports', label: 'Statistics', icon: 'bi-bar-chart-fill' },
     { section: 'Monitoring' },
     { to: '/admin/content-reports', label: 'Reported Content', icon: 'bi-flag-fill' },
+    { to: '/admin/credential-requests', label: 'Credential Requests', icon: 'bi-key-fill' },
     { section: 'Profile' },
     { to: '/admin/profile', label: 'Account', icon: 'bi-person-fill-gear' }
   ]
@@ -110,6 +111,14 @@ export default function Sidebar({ role, open, onNavigate }) {
     ? { to: '/admin/profile', className: 'sidebar-profile-card', onClick: onNavigate }
     : { to: `/profile/${user?.userId}`, className: 'sidebar-profile-card', onClick: onNavigate };
 
+  // The role-specific "My Profile" edit pages (e.g. /student/profile) are
+  // where you manage your data, but the sidebar link itself should land on
+  // the public profile view — same destination as the profile card above.
+  // Admins keep going straight to their Account settings.
+  const PROFILE_EDIT_ROUTES = ['/student/profile', '/company/profile', '/faculty/profile'];
+  const resolveMenuTarget = (to) =>
+    PROFILE_EDIT_ROUTES.includes(to) ? `/profile/${user?.userId}` : to;
+
   return (
     <aside className={`app-sidebar ${open ? 'sidebar-mobile-open' : ''}`}>
       <NavLink {...profileCardProps}>
@@ -154,7 +163,7 @@ export default function Sidebar({ role, open, onNavigate }) {
           ) : (
             <NavLink
               key={item.to}
-              to={item.to}
+              to={resolveMenuTarget(item.to)}
               end
               onClick={onNavigate}
               className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}

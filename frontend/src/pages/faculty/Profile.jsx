@@ -99,7 +99,8 @@ export default function FacultyProfile() {
         onCoverImageUpload={(e) => upload('coverPicture', e.target.files?.[0])}
         actions={
           <a className="btn btn-outline-primary btn-sm" href={`/profile/${p.userId}`}>
-            View public profile
+            <i className="bi bi-arrow-left me-1" />
+            Back to profile
           </a>
         }
       />

@@ -129,7 +129,7 @@ public class ResearchServiceImpl implements ResearchService {
                                 .orElseThrow(() -> new ResourceNotFoundException("Student profile not found"));
                 return researchRepository.findAllByStatus(PostStatus.ACTIVE).stream()
                                 .filter(r -> r.getApplicationDeadline() == null
-                                                || r.getApplicationDeadline().isAfter(java.time.LocalDateTime.now()))
+                                                || !r.getApplicationDeadline().isBefore(java.time.LocalDate.now()))
                                 .map(r -> {
                                         MatchBreakdownResponse m = matchingEngine.score(s, r.getRequiredSkills(),
                                                         r.getMinCgpa(), r.getTargetDepartments());

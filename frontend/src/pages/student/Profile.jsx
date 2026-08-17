@@ -195,7 +195,8 @@ export default function StudentProfile() {
         onCoverImageUpload={(e) => updateFile('coverPicture', e.target.files?.[0])}
         actions={
           <a className="btn btn-outline-primary btn-sm" href={`/profile/${p.userId}`}>
-            View public profile
+            <i className="bi bi-arrow-left me-1" />
+            Back to profile
           </a>
         }
       />
@@ -243,9 +244,11 @@ export default function StudentProfile() {
           <div className="col-md-4">
             <label className="form-label">Email</label>
             <input
-              className="form-control" 
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="form-control"
+              value={p.email || ''}
+              disabled
+              readOnly
+              title="Email is tied to your login and can't be changed here."
             />
           </div>
 

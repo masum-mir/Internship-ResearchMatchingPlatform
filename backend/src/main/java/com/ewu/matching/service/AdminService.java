@@ -43,4 +43,6 @@ public interface AdminService {
     UserResponse changeUserRole(Long userId, ChangeRoleRequest req);
 
     UserResponse changeUserPassword(Long userId, AdminSetPasswordRequest req);
+
+    UserResponse setCredentialsSelfEdit(Long userId, SelfEditPermissionRequest req);
 }

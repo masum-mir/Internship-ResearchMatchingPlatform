@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { researchApi } from '../../api/researchApi.js';
 import { bookmarkApi } from '../../api/bookmarkApi.js';
 import { applicationApi } from '../../api/applicationApi.js';
@@ -11,6 +12,7 @@ import Loader from '../../components/Loader.jsx';
 import PageTitle from '../../components/PageTitle.jsx';
 
 export default function BrowseResearch() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [mode, setMode] = useState('matched');
   const [items, setItems] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
@@ -44,6 +46,22 @@ export default function BrowseResearch() {
     loadBookmarks();
     loadApplications();
   }, [loadMatched, loadBookmarks, loadApplications]);
+
+  // Deep link from a "posted a research opportunity" notification — open that
+  // opportunity's detail modal directly instead of just landing on the list.
+  useEffect(() => {
+    const opportunityId = searchParams.get('opportunity');
+    if (!opportunityId) return;
+    researchApi.getById(opportunityId)
+      .then((research) => setDetail({ research, match: null }))
+      .catch(() => setNotice({ type: 'danger', message: 'That research opportunity could not be found.' }));
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('opportunity');
+      return next;
+    }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const search = async (event) => {
     event?.preventDefault();

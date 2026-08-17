@@ -292,6 +292,15 @@ public class AdminServiceImpl implements AdminService {
         return toResponse(u);
     }
 
+    @Override
+    @Transactional
+    public UserResponse setCredentialsSelfEdit(Long userId, com.ewu.matching.dto.request.SelfEditPermissionRequest req) {
+        User u = userRepository.findById(userId)
+                .orElseThrow(() -> ResourceNotFoundException.of("User", userId));
+        u.setCredentialsSelfEditEnabled(req.enabled());
+        return toResponse(userRepository.save(u));
+    }
+
     // ---------- helpers ----------
 
     private UserResponse toResponse(User u) {

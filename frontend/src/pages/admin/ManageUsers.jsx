@@ -13,7 +13,8 @@ const FIELD_META = {
   name: { label: 'Name', icon: 'bi-person' },
   role: { label: 'Role', icon: 'bi-person-badge' },
   email: { label: 'Email', icon: 'bi-envelope' },
-  password: { label: 'Password', icon: 'bi-key' }
+  password: { label: 'Password', icon: 'bi-key' },
+  selfEdit: { label: 'Self-edit permission', icon: 'bi-unlock' }
 };
 
 export default function ManageUsers() {
@@ -153,7 +154,7 @@ function UserActionsModal({ user, onClose, onSelect }) {
       <p className="text-muted small mb-3">Choose the account detail you want to update.</p>
       <div className="d-grid gap-2">
         {Object.entries(FIELD_META)
-          .filter(([field]) => field !== 'role' || !user?.roles?.includes('ADMIN'))
+          .filter(([field]) => (field !== 'role' && field !== 'selfEdit') || !user?.roles?.includes('ADMIN'))
           .map(([field, meta]) => (
           <button
             key={field}
@@ -176,6 +177,7 @@ function EditUserModal({ user, field, onClose, onSaved, onError }) {
   const [email, setEmail] = useState(user.email || '');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [selfEdit, setSelfEdit] = useState(Boolean(user.credentialsSelfEditEnabled));
   const [saving, setSaving] = useState(false);
   const [localError, setLocalError] = useState('');
 
@@ -208,6 +210,13 @@ function EditUserModal({ user, field, onClose, onSaved, onError }) {
         setSaving(true);
         await adminApi.changeUserPassword(user.id, newPassword);
         onSaved(`Password updated for ${user.email}.`);
+      } else if (field === 'selfEdit') {
+        if (selfEdit === Boolean(user.credentialsSelfEditEnabled)) { onClose(); return; }
+        setSaving(true);
+        await adminApi.setSelfEditPermission(user.id, selfEdit);
+        onSaved(selfEdit
+          ? `${user.email} can now change their own email/password directly.`
+          : `${user.email} must now submit a request for email/password changes.`);
       }
     } catch (err) {
       setSaving(false);
@@ -279,6 +288,19 @@ function EditUserModal({ user, field, onClose, onSaved, onError }) {
                 />
               </div>
             </>
+          )}
+
+          {field === 'selfEdit' && (
+            <div className="mb-3">
+              <label className="form-label">Self-edit permission</label>
+              <select className="form-select" value={selfEdit ? 'yes' : 'no'} onChange={(e) => setSelfEdit(e.target.value === 'yes')}>
+                <option value="no">Disabled — changes need my approval</option>
+                <option value="yes">Enabled — user can change directly</option>
+              </select>
+              <div className="form-text">
+                When disabled, email/password changes this user submits go to Credential Requests for review instead of applying immediately.
+              </div>
+            </div>
           )}
 
           <div className="d-flex justify-content-end gap-2 mt-4">

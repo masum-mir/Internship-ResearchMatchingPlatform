@@ -129,6 +129,38 @@
   color: #475569; font-size: 1.22rem; text-decoration: none;
 }
 .navbar-icon-link:hover { background: #edf4fb; color: var(--brand); text-decoration: none; }
+
+.theme-toggle-switch {
+  position: relative;
+  width: 54px; height: 28px; flex: none;
+  border-radius: 999px;
+  border: 1px solid rgba(10,102,194,.18);
+  background: linear-gradient(135deg, #dceeff, #f3f9ff);
+  display: inline-flex; align-items: center; justify-content: space-between;
+  padding: 0 6px;
+  cursor: pointer;
+  box-shadow: inset 0 1px 3px rgba(10,60,120,.12);
+  transition: background .3s ease, border-color .3s ease;
+}
+.theme-toggle-switch:hover { border-color: rgba(10,102,194,.32); }
+.theme-toggle-icon {
+  position: relative; z-index: 1;
+  font-size: .72rem; line-height: 1;
+  transition: color .3s ease, opacity .3s ease;
+}
+.theme-toggle-icon-sun { color: #f5a623; }
+.theme-toggle-icon-moon { color: #94a3b8; }
+.theme-toggle-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(15,23,42,.28);
+  transition: transform .32s cubic-bezier(.4,0,.2,1), background .32s ease;
+}
+.theme-toggle-switch[aria-checked="true"] .theme-toggle-thumb {
+  transform: translateX(26px);
+  background: #0f172a;
+}
 .nav-count {
   position: absolute; right: 2px; top: 0;
   min-width: 18px; height: 18px; padding: 0 4px;
